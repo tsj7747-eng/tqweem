@@ -3,7 +3,7 @@
    ---------------------------------------------------------
    تجدهما في Supabase ← Project Settings ← API
      SUPABASE_URL      = "https://czrzdwbmclfrqftxxvpx.supabase.co",
-     SUPABASE_ANON_KEY = sb_publishable_1LMWyji8gVR7Hjderk_iTQ_pIVkdiug
+     SUPABASE_ANON_KEY = sb_publishable_1LMWyji8gVR7Hjderk_iTQ_pIVkdiug",
    ---------------------------------------------------------
    ملاحظة أمنية: مفتاح anon مصمَّم ليكون ظاهرًا في المتصفح،
    والحماية الحقيقية تأتي من سياسات RLS في ملف supabase_schema.sql.
