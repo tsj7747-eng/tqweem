@@ -11,8 +11,8 @@
    ========================================================= */
 
 window.APP_CONFIG = {
-  SUPABASE_URL:      "PASTE_PROJECT_URL_HERE",
-  SUPABASE_ANON_KEY: "PASTE_ANON_KEY_HERE",
+  SUPABASE_URL:      "https://czrzdwbmclfrqftxxvpx.supabase.co",
+  SUPABASE_ANON_KEY: "sb_publishable_1LMWyji8gVR7Hjderk_iTQ_pIVkdiug",
 
   // اسم المدرسة الظاهر في الترويسة (اختياري)
   SCHOOL_NAME: "منصة شواهد التقويم المدرسي الخارجي",
