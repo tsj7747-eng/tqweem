@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>منصة شواهد التقويم المدرسي الخارجي</title>
+<style>
+:root{--bg:#f4f6f9;--card:#fff;--ink:#16202e;--muted:#6b7a90;--line:#e2e8f1;
+ --brand:#0f5c4a;--brand2:#137a62;--accent:#c9a227;--ok:#16794f;--warn:#b7791f;
+ --bad:#b02a37;--soft:#eef4f2;--r:14px;--sh:0 2px 10px rgba(16,32,48,.07)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+ font-family:"Segoe UI",Tahoma,system-ui,sans-serif;font-size:15px;line-height:1.7}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+header{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;padding:12px 14px}
+.hrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.logo{width:38px;height:38px;border-radius:10px;background:rgba(255,255,255,.16);display:grid;place-items:center;font-size:18px}
+.htitle{font-weight:700;font-size:16px}.hsub{font-size:11.5px;opacity:.85}
+.who{margin-inline-start:auto;font-size:11.5px;text-align:left}
+.badge{display:inline-block;background:rgba(255,255,255,.2);padding:2px 10px;border-radius:99px;font-size:11px;margin-top:3px}
+nav{display:flex;gap:5px;overflow-x:auto;padding:9px 10px 0;background:var(--card);
+ border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+nav button{white-space:nowrap;border:0;background:transparent;color:var(--muted);
+ padding:8px 12px;border-radius:10px 10px 0 0;cursor:pointer;font-weight:600;font-size:13px}
+nav button.on{background:var(--soft);color:var(--brand);box-shadow:inset 0 -3px 0 var(--brand)}
+main{padding:12px;max-width:1150px;margin:0 auto}
+.view{display:none}.view.on{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+ padding:13px;margin-bottom:11px;box-shadow:var(--sh)}
+.card h3{margin:0 0 9px;font-size:15px}
+.hint{color:var(--muted);font-size:12.5px}
+.btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:8px 13px;
+ border-radius:10px;cursor:pointer;font-weight:600}
+.btn.p{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.d{color:var(--bad);border-color:#f0d5d8}
+.btn.sm{padding:5px 10px;font-size:12.5px;border-radius:8px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:11px;text-align:center}
+.kpi b{display:block;font-size:24px;color:var(--brand)}.kpi span{font-size:11.5px;color:var(--muted)}
+.ring{width:126px;height:126px;margin:0 auto;position:relative}
+.ring svg{transform:rotate(-90deg)}
+.ring .val{position:absolute;inset:0;display:grid;place-items:center;font-size:25px;font-weight:700;color:var(--brand)}
+.bar{height:9px;background:#eceff4;border-radius:99px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand2),var(--accent))}
+.dom{border:1px solid var(--line);border-radius:var(--r);background:var(--card);margin-bottom:11px;overflow:hidden;box-shadow:var(--sh)}
+.dh{padding:11px 13px;display:flex;gap:9px;align-items:center;cursor:pointer;background:var(--soft)}
+.dh .nm{font-weight:700;flex:1;font-size:14px}
+.pc{font-weight:700;color:var(--brand);font-size:13.5px}
+.std{border-top:1px solid var(--line);padding:9px 13px}
+.sh{display:flex;gap:9px;align-items:center;cursor:pointer}
+.sh .nm{font-weight:600;flex:1;font-size:13.5px}
+.mini{width:80px}
+.item{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fcfdfe}
+.it{display:flex;gap:8px;align-items:flex-start}
+.it .tx{flex:1;font-size:13.5px;font-weight:600}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px;margin-top:8px}
+.lbl{display:block;font-size:11.5px;color:var(--muted);margin-bottom:3px}
+.meta input,.meta select,.fullin{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:9px;background:#fff}
+textarea{width:100%;padding:8px;border:1px solid var(--line);border-radius:9px;resize:vertical;min-height:48px;background:#fff}
+.pill{font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700;white-space:nowrap}
+.s0{background:#f1f3f6;color:#63718a}.s1{background:#fdf3e0;color:var(--warn)}
+.s2{background:#e6f4ee;color:var(--ok)}.s3{background:#e7eefb;color:#2b5cb8}.s4{background:#f4f1fa;color:#6b5aa8}
+.f{display:flex;gap:7px;align-items:center;background:#fff;border:1px solid var(--line);
+ border-radius:9px;padding:6px 9px;font-size:12.5px;margin-top:6px}
+.f .n{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.f .sz{color:var(--muted);font-size:11px}
+.drop{border:1.5px dashed #cfd8e3;border-radius:10px;padding:9px;text-align:center;
+ color:var(--muted);font-size:12.5px;cursor:pointer;margin-top:8px;background:#fff}
+.drop.hot{border-color:var(--brand);background:var(--soft);color:var(--brand)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:right}
+th{background:var(--soft);font-weight:700}
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:8px}
+.filters input,.filters select{width:100%;padding:8px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#16202e;
+ color:#fff;padding:9px 17px;border-radius:99px;font-size:13px;z-index:99;opacity:0;transition:.25s;pointer-events:none}
+.toast.on{opacity:1}
+.gate{position:fixed;inset:0;background:linear-gradient(135deg,#0f5c4a,#137a62);
+ display:grid;place-items:center;z-index:200;padding:16px}
+.gate .box{background:#fff;border-radius:16px;padding:22px;max-width:400px;width:100%}
+.gate h2{margin:0 0 4px;font-size:18px;color:var(--brand)}
+.gate .fullin{margin-top:10px}
+.err{color:var(--bad);font-size:12.5px;margin-top:8px;min-height:18px}
+@media print{header,nav,.noprint{display:none!important}body{background:#fff;font-size:11.5px}
+ main{padding:0}.card,.dom{box-shadow:none;break-inside:avoid}@page{size:A4 portrait;margin:12mm}}
+.sign{display:flex;justify-content:space-between;margin-top:36px;text-align:center;font-size:12px}
+.sign div{flex:1}.sign .ln{margin-top:32px;border-top:1px solid #333;width:70%;margin-inline:auto}
+</style>
+</head>
+<body>
+
+<!-- ============ شاشة الدخول ============ -->
+<div class="gate" id="gate"><div class="box">
+  <h2>منصة شواهد التقويم المدرسي الخارجي</h2>
+  <div class="hint">سجّل الدخول بالبريد وكلمة المرور اللذين زوّدك بهما مدير المنصة.</div>
+  <input class="fullin" id="em" type="email" placeholder="البريد الإلكتروني" autocomplete="username">
+  <input class="fullin" id="pw" type="password" placeholder="كلمة المرور" autocomplete="current-password">
+  <div class="err" id="loginErr"></div>
+  <button class="btn p" id="loginBtn" style="width:100%;margin-top:6px">دخول</button>
+</div></div>
+
+<header>
+  <div class="hrow">
+    <div class="logo">📁</div>
+    <div><div class="htitle" id="schoolName">منصة شواهد التقويم المدرسي الخارجي</div>
+      <div class="hsub">المجالات الأربعة والمعايير العشرة</div>
+      <div id="schPickWrap" style="display:none;margin-top:5px">
+        <select id="schPick" style="padding:4px 8px;border-radius:8px;border:0;font-size:12.5px"></select></div></div>
+    <div class="who"><div id="meLbl"></div><div><span class="badge" id="roleLbl"></span></div>
+      <div style="margin-top:4px"><button class="btn sm" onclick="signOut()">خروج</button></div></div>
+  </div>
+</header>
+
+<nav id="nav">
+  <button data-v="dash" class="on">لوحة الجاهزية</button>
+  <button data-v="ev">الشواهد والأدلة</button>
+  <button data-v="lib">مكتبة الملفات</button>
+  <button data-v="log">سجل النشاط</button>
+  <button data-v="rep">التقرير والطباعة</button>
+  <button data-v="sch" id="navSch" style="display:none">المدارس</button>
+  <button data-v="set">الإعدادات</button>
+</nav>
+
+<main>
+<section class="view on" id="v-dash">
+  <div class="card"><h3>نسبة الجاهزية العامة</h3>
+    <div class="ring"><svg width="126" height="126">
+      <circle cx="63" cy="63" r="53" fill="none" stroke="#eceff4" stroke-width="13"/>
+      <circle id="arc" cx="63" cy="63" r="53" fill="none" stroke="url(#g)" stroke-width="13"
+        stroke-linecap="round" stroke-dasharray="333" stroke-dashoffset="333"/>
+      <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#137a62"/><stop offset="100%" stop-color="#c9a227"/>
+      </linearGradient></defs></svg><div class="val" id="ringVal">0%</div></div>
+    <div class="row noprint" style="justify-content:center;margin-top:8px">
+      <button class="btn sm" onclick="loadAll(1)">🔄 تحديث البيانات</button></div></div>
+  <div class="kpis" id="kpis"></div>
+  <div class="card"><h3>الجاهزية حسب المجال</h3><div id="domBars"></div></div>
+  <div class="card"><h3>⚠️ شواهد متأخرة أو قريبة الاستحقاق</h3><div id="dueList"></div></div>
+  <div class="card"><h3>👥 توزيع المهام على المسؤولين</h3><div id="ownList"></div></div>
+</section>
+
+<section class="view" id="v-ev">
+  <div class="card noprint">
+    <div class="filters">
+      <input id="fq" placeholder="🔎 بحث في الشواهد...">
+      <select id="fst"><option value="">كل الحالات</option></select>
+      <select id="fdom"><option value="">كل المجالات</option></select>
+      <select id="fown"><option value="">كل المسؤولين</option></select>
+    </div>
+    <div class="row" style="margin-top:9px">
+      <button class="btn sm" onclick="expandAll(true)">توسيع الكل</button>
+      <button class="btn sm" onclick="expandAll(false)">طي الكل</button>
+      <button class="btn sm p" onclick="loadAll(1)">🔄 تحديث</button>
+      <span class="hint" id="roNote"></span>
+    </div>
+  </div>
+  <div id="tree"></div>
+</section>
+
+<section class="view" id="v-lib">
+  <div class="card"><h3>مكتبة الملفات</h3>
+    <input class="fullin" id="lq" placeholder="🔎 بحث باسم الملف...">
+    <div class="hint" style="margin-top:8px" id="libStat"></div></div>
+  <div class="card"><div id="libList"></div></div>
+</section>
+
+<section class="view" id="v-log">
+  <div class="card"><h3>سجل النشاط</h3><div id="logList"></div></div>
+</section>
+
+<section class="view" id="v-rep">
+  <div class="card noprint"><h3>تقرير جاهزية الشواهد</h3>
+    <div class="row"><button class="btn p" onclick="window.print()">🖨️ طباعة</button>
+      <label class="row" style="gap:5px"><input type="checkbox" id="repMiss"> النواقص فقط</label></div></div>
+  <div class="card" id="repBody"></div>
+</section>
+
+<section class="view" id="v-sch">
+  <div class="card"><h3>مقارنة جاهزية المدارس</h3>
+    <div id="schBars"></div></div>
+  <div class="card"><h3>إضافة مدرسة</h3>
+    <input class="fullin" id="newSch" placeholder="اسم المدرسة الجديدة">
+    <div class="row" style="margin-top:9px"><button class="btn p" onclick="addSchool()">إضافة</button></div>
+    <div class="hint" style="margin-top:6px">تُنشأ المدرسة ومعها الشواهد الـ52 جاهزة. ثم أسنِد مستخدميها إليها من لوحة Supabase.</div>
+  </div>
+</section>
+
+<section class="view" id="v-set">
+  <div class="card"><h3>بيانات المدرسة</h3>
+    <div class="meta">
+      <div><span class="lbl">اسم المدرسة</span><input id="sName"></div>
+      <div><span class="lbl">المرحلة</span><input id="sStage"></div>
+      <div><span class="lbl">إدارة التعليم</span><input id="sEdu"></div>
+      <div><span class="lbl">مدير المدرسة</span><input id="sPrin"></div>
+      <div><span class="lbl">العام الدراسي</span><input id="sYear"></div>
+      <div><span class="lbl">تاريخ الزيارة المتوقع</span><input type="date" id="sVisit"></div>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn p" id="saveSchoolBtn" onclick="saveSchool()">حفظ</button></div>
+  </div>
+  <div class="card"><h3>الأدوار والصلاحيات</h3>
+    <table><tr><th>الدور</th><th>ماذا يستطيع</th></tr>
+      <tr><td>مشرف (admin)</td><td>كل شيء، ويغيّر أدوار الآخرين من لوحة Supabase</td></tr>
+      <tr><td>محرِّر (editor)</td><td>يعدّل الحالات ويرفع الملفات ويحذفها</td></tr>
+      <tr><td>مُشاهد (viewer)</td><td>يطّلع ويحمّل الملفات فقط، ولا يستطيع تغيير شيء</td></tr></table>
+    <div class="hint" style="margin-top:8px">
+      لإضافة شخص: Supabase ← Authentication ← Users ← Add user، ثم غيّر دوره من
+      Table Editor ← profiles ← عمود role. كل مستخدم جديد يبدأ «مُشاهد» تلقائيًا.</div>
+  </div>
+  <div class="card"><h3>نسخة احتياطية</h3>
+    <div class="row"><button class="btn" onclick="exportJSON()">⬇️ تصدير البيانات (JSON)</button></div>
+    <div class="hint" style="margin-top:6px">يصدّر بيانات الشواهد وقائمة المرفقات. الملفات نفسها محفوظة في Supabase Storage.</div>
+  </div>
+</section>
+</main>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+/* ================= الحالة ================= */
+const CFG = window.APP_CONFIG || {};
+const STATUS = ["لم يبدأ","قيد التجهيز","مكتمل","معتمد","غير مطلوب"];
+let sb = null, ME = null, ROLE = "viewer";
+let EV = [], ATT = [], LOG = [], SET = {}, openState = {};
+let SCHOOL = null, SCHOOLS = [], ALL_EV = [];
+const isSuper = () => ROLE==="superadmin";
+
+const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const hijri = d => {try{return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura",
+  {day:"numeric",month:"long",year:"numeric"}).format(d)+" هـ"}catch(e){return ""}};
+const fmtSize = b => b<1024?b+" ب":b<1048576?(b/1024).toFixed(1)+" ك.ب":(b/1048576).toFixed(2)+" م.ب";
+function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");
+  clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("on"),2400)}
+function daysTo(ds){if(!ds)return null;const a=new Date(ds+"T00:00:00"),b=new Date();
+  b.setHours(0,0,0,0);return Math.round((a-b)/86400000)}
+const canEdit = () => ROLE==="superadmin" || ROLE==="admin" || ROLE==="editor";
+const sIdx = s => Math.max(0, STATUS.indexOf(s));
+const weight = s => s==="غير مطلوب"?null : (s==="مكتمل"||s==="معتمد")?1 : s==="قيد التجهيز"?.5 : 0;
+function pctOf(list){const w=list.map(e=>weight(e.status)).filter(x=>x!==null);
+  if(!w.length)return 100;return Math.round(w.reduce((a,b)=>a+b,0)/w.length*100)}
+const attOf = id => ATT.filter(a=>a.evidence_id===id);
+
+/* ================= الإقلاع وتسجيل الدخول ================= */
+function boot(){
+  if(!CFG.SUPABASE_URL || CFG.SUPABASE_URL.indexOf("http")!==0){
+    document.getElementById("loginErr").textContent =
+      "لم يتم ضبط ملف config.js بعد — ضع فيه رابط المشروع ومفتاح anon.";
+    document.getElementById("loginBtn").disabled = true; return;
+  }
+  sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
+  if(CFG.SCHOOL_NAME) document.getElementById("schoolName").textContent = CFG.SCHOOL_NAME;
+  sb.auth.getSession().then(({data})=>{ if(data.session) afterLogin(data.session.user) });
+}
+document.getElementById("loginBtn").onclick = doLogin;
+document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin()});
+
+async function doLogin(){
+  const btn=document.getElementById("loginBtn"), err=document.getElementById("loginErr");
+  err.textContent=""; btn.disabled=true; btn.textContent="جارٍ الدخول…";
+  const {data,error} = await sb.auth.signInWithPassword({
+    email:document.getElementById("em").value.trim(),
+    password:document.getElementById("pw").value});
+  btn.disabled=false; btn.textContent="دخول";
+  if(error){err.textContent="تعذّر الدخول: تحقق من البريد وكلمة المرور."; return}
+  afterLogin(data.user);
+}
+async function signOut(){ await sb.auth.signOut(); location.reload() }
+
+async function afterLogin(user){
+  ME = user;
+  const {data:prof} = await sb.from("profiles").select("*").eq("id",user.id).single();
+  ROLE = prof?.role || "viewer";
+  const {data:schs} = await sb.from("schools").select("*").order("name");
+  SCHOOLS = schs || [];
+  SCHOOL = prof?.school_id || (SCHOOLS[0] && SCHOOLS[0].id) || null;
+  if(isSuper()){
+    document.getElementById("navSch").style.display="";
+    const saved = localStorage.getItem("tqweem_school");
+    if(saved && SCHOOLS.some(x=>x.id===saved)) SCHOOL = saved;
+  }
+  if(SCHOOLS.length>1 || isSuper()){
+    const w=document.getElementById("schPickWrap"), p=document.getElementById("schPick");
+    w.style.display=""; p.innerHTML=SCHOOLS.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("");
+    p.value=SCHOOL||""; p.onchange=()=>{SCHOOL=p.value;localStorage.setItem("tqweem_school",SCHOOL);loadAll(1)};
+  }
+  if(!SCHOOL){ toast("لم تُسنَد إلى أي مدرسة — راجع مدير المنصة") }
+  document.getElementById("meLbl").textContent = "👤 " + (prof?.full_name || user.email);
+  document.getElementById("roleLbl").textContent =
+    ROLE==="superadmin"?"إشراف عام على كل المدارس":ROLE==="admin"?"مشرف المدرسة":ROLE==="editor"?"محرِّر":"مُشاهد — عرض فقط";
+  document.getElementById("roNote").textContent =
+    canEdit() ? "" : "حسابك للاطّلاع فقط، ولا يمكنك تعديل البيانات.";
+  document.getElementById("saveSchoolBtn").disabled = !canEdit();
+  document.getElementById("gate").style.display="none";
+  await loadAll(0);
+  setInterval(()=>{if(document.visibilityState==="visible")loadAll(0)},90000);
+}
+
+/* ================= تحميل البيانات ================= */
+async function loadAll(loud){
+  try{
+    let q1 = sb.from("evidence").select("*").order("ord");
+    let q2 = sb.from("attachments").select("*").order("created_at",{ascending:false});
+    let q3 = sb.from("activity").select("*").order("created_at",{ascending:false}).limit(120);
+    if(!isSuper() && SCHOOL){ q1=q1.eq("school_id",SCHOOL); q2=q2.eq("school_id",SCHOOL); q3=q3.eq("school_id",SCHOOL) }
+    const [e,a,l,s] = await Promise.all([q1,q2,q3,sb.from("schools").select("*").order("name")]);
+    if(e.error) throw e.error;
+    SCHOOLS = s.data || SCHOOLS;
+    ALL_EV = e.data||[];
+    EV  = SCHOOL ? ALL_EV.filter(x=>x.school_id===SCHOOL) : ALL_EV;
+    ATT = (a.data||[]).filter(x=>!SCHOOL||x.school_id===SCHOOL);
+    LOG = (l.data||[]).filter(x=>!SCHOOL||x.school_id===SCHOOL);
+    SET = SCHOOLS.find(x=>x.id===SCHOOL) || {};
+    renderAll(); if(loud) toast("تم التحديث");
+  }catch(err){ toast("تعذّر تحميل البيانات — تحقق من الاتصال") }
+}
+async function logIt(txt){
+  try{ await sb.from("activity").insert({actor: ME?.email||"", action: txt, school_id: SCHOOL}) }catch(e){}
+}
+
+/* ================= التبويبات ================= */
+document.getElementById("nav").addEventListener("click",e=>{
+  const b=e.target.closest("button[data-v]"); if(!b)return;
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  document.getElementById("v-"+b.dataset.v).classList.add("on");
+  window.scrollTo(0,0);
+});
+function renderAll(){ fillFilters(); renderTree(); renderDash(); renderLib();
+  renderLog(); renderRep(); fillSchool(); renderSchools() }
+
+function renderSchools(){
+  const box=document.getElementById("schBars"); if(!box)return;
+  if(!isSuper()){ box.innerHTML=`<div class="hint">هذه الصفحة لصاحب صلاحية الإشراف العام فقط.</div>`; return }
+  box.innerHTML = SCHOOLS.map(sc=>{
+    const rows=ALL_EV.filter(e=>e.school_id===sc.id), v=rows.length?pctOf(rows):0;
+    const done=rows.filter(e=>e.status==="مكتمل"||e.status==="معتمد").length;
+    return `<div style="margin-bottom:13px"><div class="row" style="justify-content:space-between;font-size:13px">
+      <b>${esc(sc.name)}</b><span class="pc">${v}%</span></div>
+      <div class="bar"><i style="width:${v}%"></i></div>
+      <div class="row" style="justify-content:space-between">
+        <span class="hint">${done} من ${rows.length} شاهد جاهز</span>
+        <button class="btn sm" onclick="goSchool('${sc.id}')">فتح</button></div></div>`
+  }).join("") || `<div class="hint">لا توجد مدارس بعد.</div>`;
+}
+function goSchool(id){
+  SCHOOL=id; localStorage.setItem("tqweem_school",id);
+  const p=document.getElementById("schPick"); if(p)p.value=id;
+  loadAll(1);
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("on"));
+  document.querySelector('#nav button[data-v="dash"]').classList.add("on");
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("on"));
+  document.getElementById("v-dash").classList.add("on");
+  window.scrollTo(0,0);
+}
+async function addSchool(){
+  if(!isSuper())return toast("غير مصرح");
+  const nm=document.getElementById("newSch").value.trim();
+  if(!nm)return toast("اكتب اسم المدرسة");
+  const {data,error}=await sb.rpc("create_school",{p_name:nm});
+  if(error)return toast("تعذّرت الإضافة");
+  document.getElementById("newSch").value="";
+  toast("أُضيفت المدرسة ومعها الشواهد"); await loadAll(0);
+}
+
+/* ================= لوحة الجاهزية ================= */
+function renderDash(){
+  const p=EV.length?pctOf(EV):0, C=2*Math.PI*53;
+  document.getElementById("arc").style.strokeDashoffset = C - C*p/100;
+  document.getElementById("ringVal").textContent = p+"%";
+  const cnt = s => EV.filter(e=>e.status===s).length;
+  document.getElementById("kpis").innerHTML = `
+   <div class="kpi"><b>${EV.length}</b><span>إجمالي الشواهد</span></div>
+   <div class="kpi"><b style="color:var(--ok)">${cnt("مكتمل")+cnt("معتمد")}</b><span>مكتمل / معتمد</span></div>
+   <div class="kpi"><b style="color:var(--warn)">${cnt("قيد التجهيز")}</b><span>قيد التجهيز</span></div>
+   <div class="kpi"><b style="color:var(--bad)">${cnt("لم يبدأ")}</b><span>لم يبدأ</span></div>
+   <div class="kpi"><b>${ATT.length}</b><span>ملف مرفوع</span></div>`;
+  const doms=[...new Set(EV.map(e=>e.domain))];
+  document.getElementById("domBars").innerHTML = doms.map(d=>{
+    const x=EV.filter(e=>e.domain===d), v=pctOf(x);
+    return `<div style="margin-bottom:11px"><div class="row" style="justify-content:space-between;font-size:13px">
+      <b>${esc(d)}</b><span class="pc">${v}%</span></div>
+      <div class="bar"><i style="width:${v}%"></i></div>
+      <div class="hint">${x.filter(e=>e.status==="مكتمل"||e.status==="معتمد").length} من ${x.length} شاهد جاهز</div></div>`
+  }).join("");
+  const due = EV.filter(e=>e.due && sIdx(e.status)<2).map(e=>({e,dd:daysTo(e.due)}))
+    .filter(o=>o.dd!==null&&o.dd<=21).sort((a,b)=>a.dd-b.dd).slice(0,10);
+  document.getElementById("dueList").innerHTML = due.length ? due.map(o=>{
+    const late=o.dd<0;
+    return `<div class="f"><span class="pill s1" ${late?'style="background:#fbe9eb;color:#b02a37"':''}>
+      ${late?"متأخر "+Math.abs(o.dd)+" يوم":"بعد "+o.dd+" يوم"}</span>
+      <span class="n">${esc(o.e.title)}</span><span class="sz">${esc(o.e.owner||"—")}</span></div>`
+  }).join("") : `<div class="hint">لا توجد شواهد متأخرة أو قريبة الاستحقاق.</div>`;
+  const map={};
+  EV.forEach(e=>{const o=(e.owner||"").trim()||"غير مُسند";(map[o]=map[o]||[]).push(e)});
+  document.getElementById("ownList").innerHTML = Object.keys(map).sort().map(o=>{
+    const v=pctOf(map[o]);
+    return `<div style="margin-bottom:10px"><div class="row" style="justify-content:space-between;font-size:13px">
+      <b>${esc(o)}</b><span class="pc">${v}% — ${map[o].length} شاهد</span></div>
+      <div class="bar"><i style="width:${v}%"></i></div></div>`}).join("");
+}
+
+/* ================= الشواهد ================= */
+function fillFilters(){
+  const fs=document.getElementById("fst");
+  if(fs.options.length<=1) fs.innerHTML=`<option value="">كل الحالات</option>`+
+    STATUS.map(s=>`<option value="${s}">${s}</option>`).join("");
+  const fd=document.getElementById("fdom"), vd=fd.value;
+  fd.innerHTML=`<option value="">كل المجالات</option>`+
+    [...new Set(EV.map(e=>e.domain))].map(d=>`<option value="${esc(d)}">${esc(d)}</option>`).join("");
+  fd.value=vd;
+  const fo=document.getElementById("fown"), vo=fo.value;
+  fo.innerHTML=`<option value="">كل المسؤولين</option><option value="__none">غير مُسندة</option>`+
+    [...new Set(EV.map(e=>(e.owner||"").trim()).filter(Boolean))].sort()
+      .map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join("");
+  fo.value=vo;
+}
+["fq","fst","fdom","fown"].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener(id==="fq"?"input":"change",renderTree)});
+function expandAll(v){
+  [...new Set(EV.map(e=>e.domain))].forEach(d=>openState["d:"+d]=v);
+  [...new Set(EV.map(e=>e.standard))].forEach(s=>openState["s:"+s]=v);
+  renderTree();
+}
+function tog(k){openState[k]=openState[k]===false?true:false;renderTree()}
+function match(e){
+  const q=document.getElementById("fq").value.trim().toLowerCase();
+  const st=document.getElementById("fst").value, dm=document.getElementById("fdom").value;
+  const ow=document.getElementById("fown").value;
+  if(dm&&e.domain!==dm)return false;
+  if(st&&e.status!==st)return false;
+  if(ow==="__none"&&(e.owner||"").trim())return false;
+  if(ow&&ow!=="__none"&&(e.owner||"").trim()!==ow)return false;
+  if(q&&!((e.title+" "+e.owner+" "+e.note+" "+e.standard).toLowerCase().includes(q)))return false;
+  return true;
+}
+function renderTree(){
+  const doms=[...new Set(EV.map(e=>e.domain))];
+  let H="";
+  doms.forEach(d=>{
+    const inD=EV.filter(e=>e.domain===d);
+    const stds=[...new Set(inD.map(e=>e.standard))]
+      .map(s=>({s, vis:inD.filter(e=>e.standard===s&&match(e))})).filter(o=>o.vis.length);
+    if(!stds.length)return;
+    const dO=openState["d:"+d]!==false;
+    H+=`<div class="dom"><div class="dh" onclick="tog('d:${esc(d)}')">
+      <span>${dO?"▾":"◂"}</span><span class="nm">${esc(d)}</span>
+      <span class="pc">${pctOf(inD)}%</span></div>`;
+    if(dO) stds.forEach(o=>{
+      const all=inD.filter(e=>e.standard===o.s), sO=openState["s:"+o.s]!==false;
+      H+=`<div class="std"><div class="sh" onclick="tog('s:${esc(o.s)}')">
+        <span>${sO?"▾":"◂"}</span><span class="nm">${esc(o.s)}</span>
+        <span class="mini"><div class="bar"><i style="width:${pctOf(all)}%"></i></div></span>
+        <span class="pc" style="font-size:12px">${pctOf(all)}%</span></div>`;
+      if(sO) o.vis.forEach(e=>H+=itemHTML(e));
+      H+=`</div>`;
+    });
+    H+=`</div>`;
+  });
+  document.getElementById("tree").innerHTML = H || `<div class="card hint">لا توجد نتائج مطابقة.</div>`;
+}
+function itemHTML(e){
+  const ro=!canEdit(), fs=attOf(e.id);
+  const stamp = e.updated_by ? `<div class="hint" style="margin-top:5px">آخر تحديث: ${esc(e.updated_by)} — ${e.updated_at?new Date(e.updated_at).toLocaleDateString("ar"):""}</div>` : "";
+  let h=`<div class="item"><div class="it">
+    <span class="pill s${sIdx(e.status)}">${esc(e.status)}</span>
+    <div class="tx">${esc(e.title)}</div></div><div class="meta">`;
+  if(ro){
+    h+=`<div><span class="lbl">الحالة</span><b>${esc(e.status)}</b></div>
+        <div><span class="lbl">المسؤول</span>${esc(e.owner||"—")}</div>
+        <div><span class="lbl">تاريخ الاستحقاق</span>${e.due?hijri(new Date(e.due+"T00:00:00")):"—"}</div></div>`;
+    if(e.note) h+=`<div class="hint" style="margin-top:6px"><b>ملاحظات:</b> ${esc(e.note)}</div>`;
+  }else{
+    h+=`<div><span class="lbl">الحالة</span><select onchange="upd('${e.id}','status',this.value)">
+        ${STATUS.map(s=>`<option ${e.status===s?"selected":""}>${s}</option>`).join("")}</select></div>
+      <div><span class="lbl">المسؤول</span><input value="${esc(e.owner)}" placeholder="اسم المكلّف"
+        onchange="upd('${e.id}','owner',this.value)"></div>
+      <div><span class="lbl">تاريخ الاستحقاق</span><input type="date" value="${e.due||""}"
+        onchange="upd('${e.id}','due',this.value||null)">
+        <div class="hint">${e.due?hijri(new Date(e.due+"T00:00:00")):""}</div></div></div>
+      <div style="margin-top:8px"><span class="lbl">ملاحظات</span>
+        <textarea onchange="upd('${e.id}','note',this.value)">${esc(e.note)}</textarea></div>`;
+  }
+  if(e.link) h+=`<div style="margin-top:6px"><a href="${esc(e.link)}" target="_blank" rel="noopener">فتح الرابط الخارجي ↗</a></div>`;
+  fs.forEach(f=>{
+    const ic=f.mime&&f.mime.includes("pdf")?"📕":f.mime&&f.mime.startsWith("image")?"🖼️":"📄";
+    h+=`<div class="f"><span>${ic}</span>
+      <span class="n">${esc(f.name)}<br><span class="sz">رفعه: ${esc(f.uploaded_by||"—")}</span></span>
+      <span class="sz">${fmtSize(f.size)}</span>
+      <button class="btn sm noprint" onclick="openFile('${f.path}')">فتح</button>
+      ${ro?"":`<button class="btn sm d noprint" onclick="rmFile('${f.id}','${f.path}')">✕</button>`}</div>`;
+  });
+  if(!ro) h+=`<div class="drop noprint" onclick="pick('${e.id}')"
+      ondragover="event.preventDefault();this.classList.add('hot')"
+      ondragleave="this.classList.remove('hot')" ondrop="dropF(event,'${e.id}',this)">
+      📎 ارفع ملفًا (حتى ${CFG.MAX_FILE_MB||25} م.ب) أو اسحبه هنا</div>`;
+  return h + stamp + `</div>`;
+}
+async function upd(id,field,val){
+  if(!canEdit())return;
+  const patch={}; patch[field]=val;
+  patch.updated_by = ME?.email||""; patch.updated_at = new Date().toISOString();
+  const {error} = await sb.from("evidence").update(patch).eq("id",id);
+  if(error) return toast("لم يُحفظ التعديل — تحقق من صلاحيتك");
+  const row=EV.find(x=>x.id===id); if(row) Object.assign(row,patch);
+  const lbl={status:"الحالة",owner:"المسؤول",due:"تاريخ الاستحقاق",note:"الملاحظات",link:"الرابط"}[field]||field;
+  logIt(`عدّل ${lbl} — ${row?row.title:""}`);
+  renderTree(); renderDash(); toast("تم الحفظ");
+}
+
+/* ================= المرفقات ================= */
+function pick(id){const i=document.createElement("input");i.type="file";i.multiple=true;
+  i.onchange=()=>upload(id,i.files);i.click()}
+function dropF(ev,id,el){ev.preventDefault();el.classList.remove("hot");upload(id,ev.dataTransfer.files)}
+async function upload(evId,files){
+  if(!canEdit())return;
+  const max=(CFG.MAX_FILE_MB||25)*1024*1024;
+  for(const file of files){
+    if(file.size>max){toast(`«${file.name}» أكبر من الحد المسموح`);continue}
+    const ext=(file.name.match(/\.[a-z0-9]+$/i)||[""])[0];
+    const path=`${SCHOOL}/${evId}/${Date.now()}_${Math.random().toString(36).slice(2,8)}${ext}`;
+    toast("جارٍ رفع "+file.name+"…");
+    const {error} = await sb.storage.from("evidence").upload(path,file,{upsert:false});
+    if(error){toast("تعذّر رفع "+file.name);continue}
+    const {error:e2} = await sb.from("attachments").insert({
+      evidence_id:evId, school_id:SCHOOL, name:file.name, size:file.size, mime:file.type||"",
+      path, uploaded_by: ME?.email||""});
+    if(e2){toast("رُفع الملف لكن لم يُسجَّل");continue}
+    logIt("رفع ملفًا: "+file.name);
+  }
+  const row=EV.find(x=>x.id===evId);
+  if(row && row.status==="لم يبدأ") await upd(evId,"status","قيد التجهيز");
+  await loadAll(0); toast("تم الرفع");
+}
+async function openFile(path){
+  const {data,error} = await sb.storage.from("evidence").createSignedUrl(path,3600);
+  if(error||!data) return toast("تعذّر فتح الملف");
+  window.open(data.signedUrl,"_blank");
+}
+async function rmFile(id,path){
+  if(!canEdit())return;
+  if(!confirm("حذف هذا المرفق نهائيًا؟"))return;
+  await sb.storage.from("evidence").remove([path]);
+  const {error}=await sb.from("attachments").delete().eq("id",id);
+  if(error)return toast("تعذّر الحذف");
+  logIt("حذف مرفقًا"); await loadAll(0); toast("حُذف المرفق");
+}
+
+/* ================= مكتبة الملفات ================= */
+function renderLib(){
+  const q=document.getElementById("lq").value.trim().toLowerCase();
+  const tot=ATT.reduce((a,f)=>a+(f.size||0),0);
+  document.getElementById("libStat").textContent=`${ATT.length} ملف — الحجم الإجمالي ${fmtSize(tot)}`;
+  const list=ATT.filter(f=>!q||f.name.toLowerCase().includes(q));
+  document.getElementById("libList").innerHTML = list.length ? list.map(f=>{
+    const ev=EV.find(e=>e.id===f.evidence_id);
+    const ic=f.mime&&f.mime.includes("pdf")?"📕":f.mime&&f.mime.startsWith("image")?"🖼️":"📄";
+    return `<div class="f"><span>${ic}</span>
+      <span class="n">${esc(f.name)}<br><span class="sz">${esc(ev?ev.title:"—")} — رفعه ${esc(f.uploaded_by||"—")}</span></span>
+      <span class="sz">${fmtSize(f.size)}</span>
+      <button class="btn sm" onclick="openFile('${f.path}')">فتح</button></div>`
+  }).join("") : `<div class="hint">لا توجد ملفات بعد.</div>`;
+}
+document.getElementById("lq").oninput=renderLib;
+
+/* ================= سجل النشاط ================= */
+function renderLog(){
+  document.getElementById("logList").innerHTML = LOG.length ? LOG.map(l=>
+    `<div class="f"><span class="n">${esc(l.action)}</span>
+     <span class="sz">${esc(l.actor)} — ${new Date(l.created_at).toLocaleString("ar")}</span></div>`).join("")
+    : `<div class="hint">لا يوجد نشاط مسجَّل بعد.</div>`;
+}
+
+/* ================= التقرير ================= */
+function renderRep(){
+  const only=document.getElementById("repMiss").checked, d=new Date();
+  let h=`<div style="text-align:center;margin-bottom:12px">
+    <div style="font-weight:700">المملكة العربية السعودية — وزارة التعليم</div>
+    <div>${esc(SET.edu||"")}</div>
+    <div style="font-weight:700;font-size:16px;margin-top:5px">${esc(SET.name||"المدرسة")}</div>
+    <div style="margin-top:7px;font-size:15px;font-weight:700;color:#0f5c4a">
+      تقرير جاهزية شواهد وأدلة التقويم المدرسي الخارجي</div>
+    <div class="hint">العام الدراسي ${esc(SET.year||"—")} — بتاريخ ${hijri(d)}</div></div>`;
+  const cnt=s=>EV.filter(e=>e.status===s).length;
+  h+=`<table><tr><th>البيان</th><th>العدد</th></tr>
+    <tr><td>إجمالي الشواهد</td><td>${EV.length}</td></tr>
+    <tr><td>مكتمل / معتمد</td><td>${cnt("مكتمل")+cnt("معتمد")}</td></tr>
+    <tr><td>قيد التجهيز</td><td>${cnt("قيد التجهيز")}</td></tr>
+    <tr><td>لم يبدأ</td><td>${cnt("لم يبدأ")}</td></tr>
+    <tr><th>نسبة الجاهزية العامة</th><th>${pctOf(EV)}%</th></tr></table><br>`;
+  [...new Set(EV.map(e=>e.domain))].forEach(dm=>{
+    const inD=EV.filter(e=>e.domain===dm);
+    const rows=inD.filter(e=>!(only&&sIdx(e.status)>=2)).map(e=>
+      `<tr><td>${esc(e.standard)}</td><td>${esc(e.title)}</td><td>${esc(e.status)}</td>
+       <td>${esc(e.owner||"—")}</td><td>${e.due?hijri(new Date(e.due+"T00:00:00")):"—"}</td>
+       <td>${attOf(e.id).length||(e.link?"رابط":"—")}</td></tr>`).join("");
+    if(!rows)return;
+    h+=`<h4 style="margin:13px 0 5px;color:#0f5c4a">${esc(dm)} — الجاهزية ${pctOf(inD)}%</h4>
+      <table><tr><th style="width:20%">المعيار</th><th>الشاهد المطلوب</th><th style="width:11%">الحالة</th>
+      <th style="width:13%">المسؤول</th><th style="width:15%">الاستحقاق</th>
+      <th style="width:8%">المرفقات</th></tr>${rows}</table>`;
+  });
+  h+=`<div class="sign"><div>عضو فريق التقويم<div class="ln"></div></div>
+    <div>قائد فريق التقويم الذاتي<div class="ln"></div></div>
+    <div>مدير المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
+  document.getElementById("repBody").innerHTML=h;
+}
+document.getElementById("repMiss").onchange=renderRep;
+
+/* ================= الإعدادات ================= */
+function fillSchool(){
+  const g=id=>document.getElementById(id);
+  g("sName").value=SET.name||""; g("sStage").value=SET.stage||""; g("sEdu").value=SET.edu||"";
+  g("sPrin").value=SET.prin||""; g("sYear").value=SET.year||""; g("sVisit").value=SET.visit||"";
+  ["sName","sStage","sEdu","sPrin","sYear","sVisit"].forEach(id=>g(id).disabled=!canEdit());
+  if(SET.name) g("schoolName").textContent=SET.name;
+}
+async function saveSchool(){
+  if(!canEdit())return;
+  const g=id=>document.getElementById(id).value;
+  const v={name:g("sName"),stage:g("sStage"),edu:g("sEdu"),
+    prin:g("sPrin"),year:g("sYear"),visit:g("sVisit")||null};
+  if(!SCHOOL) return toast("لا توجد مدرسة محددة");
+  const {error}=await sb.from("schools").update(v).eq("id",SCHOOL);
+  if(error)return toast("تعذّر الحفظ");
+  SET=Object.assign({},SET,v); const i=SCHOOLS.findIndex(x=>x.id===SCHOOL);
+  if(i>=0)SCHOOLS[i]=Object.assign({},SCHOOLS[i],v);
+  logIt("حدّث بيانات المدرسة"); fillSchool(); renderRep(); renderSchools();
+  const p=document.getElementById("schPick"); if(p&&p.options.length)
+    p.innerHTML=SCHOOLS.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join(""),p.value=SCHOOL;
+  toast("حُفظت البيانات");
+}
+function exportJSON(){
+  const b=new Blob([JSON.stringify({settings:SET,evidence:EV,attachments:ATT},null,1)],
+    {type:"application/json;charset=utf-8"});
+  const u=URL.createObjectURL(b),a=document.createElement("a");
+  a.href=u;a.download="نسخة_التقويم_"+new Date().toISOString().slice(0,10)+".json";a.click();
+  setTimeout(()=>URL.revokeObjectURL(u),3000);
+}
+
+boot();
+</script>
+</body>
+</html>
