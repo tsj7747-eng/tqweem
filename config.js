@@ -2,8 +2,8 @@
    ملف الإعدادات — عدّل السطرين التاليين فقط
    ---------------------------------------------------------
    تجدهما في Supabase ← Project Settings ← API
-     SUPABASE_URL      = "https://czrzdwbmclfrqftxxvpx.supabase.co",
-     SUPABASE_ANON_KEY = sb_publishable_1LMWyji8gVR7Hjderk_iTQ_pIVkdiug",
+     SUPABASE_URL      = Project URL
+     SUPABASE_ANON_KEY = anon public key
    ---------------------------------------------------------
    ملاحظة أمنية: مفتاح anon مصمَّم ليكون ظاهرًا في المتصفح،
    والحماية الحقيقية تأتي من سياسات RLS في ملف supabase_schema.sql.
@@ -11,11 +11,21 @@
    ========================================================= */
 
 window.APP_CONFIG = {
-  SUPABASE_URL:      "https://czrzdwbmclfrqftxxvpx.supabase.co",
-  SUPABASE_ANON_KEY: "sb_publishable_1LMWyji8gVR7Hjderk_iTQ_pIVkdiug",
+  SUPABASE_URL:      "PASTE_PROJECT_URL_HERE",
+  SUPABASE_ANON_KEY: "PASTE_ANON_KEY_HERE",
 
-  // اسم المدرسة الظاهر في الترويسة (اختياري)
-  SCHOOL_NAME: "منصة شواهد التقويم المدرسي الخارجي",
+  // اسم المدرسة الظاهر في الترويسة
+  SCHOOL_NAME: "الثانوية الثالثة ببريدة",
+
+  // إدارة التعليم الظاهرة تحت الاسم
+  EDU_NAME: "إدارة تعليم القصيم",
+
+  // شعار المدرسة في ترويسة المنصة — ارفع logo.png في المستودع
+  LOGO_URL: "logo.png",
+
+  // الترويسة الرسمية أعلى التقرير المطبوع — ارفع banner.png في المستودع
+  // (شعار المدرسة مع شعار الوزارة ورؤية 2030)
+  BANNER_URL: "banner.png",
 
   // أقصى حجم للملف الواحد بالميجابايت
   MAX_FILE_MB: 25

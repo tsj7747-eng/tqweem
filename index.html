@@ -103,7 +103,7 @@ th{background:var(--soft);font-weight:700}
 
 <header>
   <div class="hrow">
-    <div class="logo">📁</div>
+    <div class="logo" id="brandLogo">📁</div>
     <div><div class="htitle" id="schoolName">منصة شواهد التقويم المدرسي الخارجي</div>
       <div class="hsub">المجالات الأربعة والمعايير العشرة</div>
       <div id="schPickWrap" style="display:none;margin-top:5px">
@@ -137,6 +137,7 @@ th{background:var(--soft);font-weight:700}
       <button class="btn sm" onclick="loadAll(1)">🔄 تحديث البيانات</button></div></div>
   <div class="kpis" id="kpis"></div>
   <div class="card"><h3>الجاهزية حسب المجال</h3><div id="domBars"></div></div>
+  <div class="card"><h3>الجاهزية حسب المعيار</h3><div id="stdBars"></div></div>
   <div class="card"><h3>⚠️ شواهد متأخرة أو قريبة الاستحقاق</h3><div id="dueList"></div></div>
   <div class="card"><h3>👥 توزيع المهام على المسؤولين</h3><div id="ownList"></div></div>
 </section>
@@ -251,6 +252,12 @@ function boot(){
   }
   sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
   if(CFG.SCHOOL_NAME) document.getElementById("schoolName").textContent = CFG.SCHOOL_NAME;
+  if(CFG.EDU_NAME) document.querySelector("header .hsub").textContent = CFG.EDU_NAME;
+  if(CFG.LOGO_URL){
+    const L=document.getElementById("brandLogo");
+    L.innerHTML=`<img src="${CFG.LOGO_URL}" alt="" style="width:100%;height:100%;object-fit:contain;border-radius:9px">`;
+    L.style.background="#fff"; L.style.padding="3px";
+  }
   sb.auth.getSession().then(({data})=>{ if(data.session) afterLogin(data.session.user) });
 }
 document.getElementById("loginBtn").onclick = doLogin;
@@ -384,6 +391,19 @@ function renderDash(){
       <div class="bar"><i style="width:${v}%"></i></div>
       <div class="hint">${x.filter(e=>e.status==="مكتمل"||e.status==="معتمد").length} من ${x.length} شاهد جاهز</div></div>`
   }).join("");
+  let SH="";
+  [...new Set(EV.map(e=>e.domain))].forEach(d=>{
+    SH+=`<div class="hint" style="margin:10px 0 6px;font-weight:700;color:var(--brand)">${esc(d)}</div>`;
+    [...new Set(EV.filter(e=>e.domain===d).map(e=>e.standard))].forEach(st=>{
+      const x=EV.filter(e=>e.standard===st&&e.domain===d), v=pctOf(x);
+      SH+=`<div style="margin-bottom:9px"><div class="row" style="justify-content:space-between;font-size:12.5px">
+        <span>${esc(st)}</span><span class="pc" style="font-size:12.5px">${v}%</span></div>
+        <div class="bar"><i style="width:${v}%"></i></div>
+        <div class="hint">${x.filter(e=>e.status==="مكتمل"||e.status==="معتمد").length} من ${x.length} شاهد جاهز</div></div>`;
+    });
+  });
+  document.getElementById("stdBars").innerHTML = SH || `<div class="hint">لا توجد معايير بعد.</div>`;
+
   const due = EV.filter(e=>e.due && sIdx(e.status)<2).map(e=>({e,dd:daysTo(e.due)}))
     .filter(o=>o.dd!==null&&o.dd<=21).sort((a,b)=>a.dd-b.dd).slice(0,10);
   document.getElementById("dueList").innerHTML = due.length ? due.map(o=>{
@@ -577,8 +597,11 @@ function renderLog(){
 function renderRep(){
   const only=document.getElementById("repMiss").checked, d=new Date();
   let h=`<div style="text-align:center;margin-bottom:12px">
-    <div style="font-weight:700">المملكة العربية السعودية — وزارة التعليم</div>
-    <div>${esc(SET.edu||"")}</div>
+    ${CFG.BANNER_URL
+      ? `<img src="${CFG.BANNER_URL}" alt="" style="width:100%;max-width:560px;object-fit:contain;margin-bottom:8px">`
+      : (CFG.LOGO_URL?`<img src="${CFG.LOGO_URL}" alt="" style="height:62px;object-fit:contain;margin-bottom:6px">`:"")}
+    ${CFG.BANNER_URL?"":`<div style="font-weight:700">المملكة العربية السعودية — وزارة التعليم</div>`}
+    <div>${esc(SET.edu||CFG.EDU_NAME||"")}</div>
     <div style="font-weight:700;font-size:16px;margin-top:5px">${esc(SET.name||"المدرسة")}</div>
     <div style="margin-top:7px;font-size:15px;font-weight:700;color:#0f5c4a">
       تقرير جاهزية شواهد وأدلة التقويم المدرسي الخارجي</div>
