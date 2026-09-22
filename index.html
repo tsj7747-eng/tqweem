@@ -194,7 +194,7 @@ th{background:var(--soft);font-weight:700}
       <div><span class="lbl">اسم المدرسة</span><input id="sName"></div>
       <div><span class="lbl">المرحلة</span><input id="sStage"></div>
       <div><span class="lbl">إدارة التعليم</span><input id="sEdu"></div>
-      <div><span class="lbl">مدير المدرسة</span><input id="sPrin"></div>
+      <div><span class="lbl">مديرة المدرسة</span><input id="sPrin"></div>
       <div><span class="lbl">العام الدراسي</span><input id="sYear"></div>
       <div><span class="lbl">تاريخ الزيارة المتوقع</span><input type="date" id="sVisit"></div>
     </div>
@@ -625,9 +625,9 @@ function renderRep(){
       <th style="width:13%">المسؤول</th><th style="width:15%">الاستحقاق</th>
       <th style="width:8%">المرفقات</th></tr>${rows}</table>`;
   });
-  h+=`<div class="sign"><div>عضو فريق التقويم<div class="ln"></div></div>
-    <div>قائد فريق التقويم الذاتي<div class="ln"></div></div>
-    <div>مدير المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
+  h+=`<div class="sign"><div>عضوة فريق التقويم<div class="ln"></div></div>
+    <div>قائدة فريق التقويم الذاتي<div class="ln"></div></div>
+    <div>مديرة المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
   document.getElementById("repBody").innerHTML=h;
 }
 document.getElementById("repMiss").onchange=renderRep;
