@@ -619,7 +619,8 @@ function itemHTML(e){
   if(!ro) h+=`<div class="drop noprint" onclick="pick('${e.id}')"
       ondragover="event.preventDefault();this.classList.add('hot')"
       ondragleave="this.classList.remove('hot')" ondrop="dropF(event,'${e.id}',this)">
-      📎 ارفع ملفًا (حتى ${CFG.MAX_FILE_MB||25} م.ب) أو اسحبه هنا</div>`;
+      📎 ارفع ملفًا أو أكثر (حتى ${CFG.MAX_FILE_MB||25} م.ب للملف) أو اسحبها هنا
+      <div class="hint" style="margin-top:4px">يمكن إرفاق أكثر من ملف وأكثر من صورة للشاهد الواحد — اختر عدة ملفات معًا، أو ارفعها على دفعات.</div></div>`;
   return h + stamp + `</div>`;
 }
 async function upd(id,field,val){
