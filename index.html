@@ -126,7 +126,7 @@ th{background:var(--soft);font-weight:700}
   <div class="hrow">
     <div class="logo" id="brandLogo">📁</div>
     <div><div class="htitle" id="schoolName">منصة شواهد التقويم المدرسي الخارجي</div>
-      <div class="hsub">4 مجالات — 11 معيارًا — 52 مؤشرًا</div>
+      <div class="hsub">معايير التقويم المدرسي — الإصدار الثاني 2026م</div>
       <div id="schPickWrap" style="display:none;margin-top:5px">
         <select id="schPick" style="padding:4px 8px;border-radius:8px;border:0;font-size:12.5px"></select></div></div>
     <div class="who"><div id="meLbl"></div><div><span class="badge" id="roleLbl"></span></div>
@@ -167,7 +167,7 @@ th{background:var(--soft);font-weight:700}
 
 <section class="view" id="v-ind">
   <div class="card noprint">
-    <div class="hint">مؤشرات التقويم المدرسي لمدارس التعليم العام — الإصدار 1447هـ / 2026م. المؤشر «جاهز» إذا اكتمل كل شاهد مربوط به.</div>
+    <div class="hint">وفق وثيقة معايير التقويم والتصنيف والاعتماد المدرسي — الإصدار الثاني 2026م (العام الدراسي 1448هـ). المؤشر «جاهز» إذا اكتمل كل شاهد مربوط به.</div>
     <div class="filters" style="margin-top:8px">
       <input id="iq" placeholder="🔎 بحث في المؤشرات أو الرمز...">
       <select id="ist"><option value="">كل المؤشرات</option><option value="none">بلا شاهد جاهز</option>
@@ -176,6 +176,9 @@ th{background:var(--soft);font-weight:700}
     <div class="hint" id="indNote" style="margin-top:6px"></div>
   </div>
   <div id="indTree"></div>
+  <div class="card"><h3>🧰 أدوات التقويم الخارجي (12 أداة)</h3>
+    <div class="hint">يجمع فريق التقويم الخارجي البيانات بهذه الأدوات، فجهّز لها:</div>
+    <div id="toolsBox"></div></div>
 </section>
 
 <section class="view" id="v-ev">
@@ -685,6 +688,9 @@ function renderInd(){
   });
   box.innerHTML = H || `<div class="card hint">لا توجد مؤشرات مطابقة.</div>`;
 }
+(function(){ const b=document.getElementById("toolsBox"); if(!b||!window.EVAL_TOOLS)return;
+  b.innerHTML=EVAL_TOOLS.map(([g,l])=>`<div style="margin-top:8px"><b style="font-size:13px">${g}</b>
+    <div class="chips">${l.map(x=>`<span class="chip" style="cursor:default;background:var(--soft);color:var(--brand);white-space:normal">${x}</span>`).join("")}</div></div>`).join("") })();
 document.getElementById("iq").addEventListener("input",renderInd);
 document.getElementById("ist").addEventListener("change",renderInd);
 function goEv(id){
