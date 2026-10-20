@@ -94,6 +94,11 @@ th{background:var(--soft);font-weight:700}
  main{padding:0}.card,.dom{box-shadow:none;break-inside:avoid}#repBody{break-inside:auto;border:0;padding:0}
  tr{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:12mm}}
 .code,.ind .cd,.chip{direction:ltr;unicode-bidi:isolate}
+.ibar{height:6px;background:#eceff4;border-radius:99px;overflow:hidden;margin-top:6px}
+.ibar i{display:block;height:100%;background:linear-gradient(90deg,var(--brand2),var(--accent))}
+.warn{color:var(--warn);font-size:12px;margin-top:6px}
+.f.del{opacity:.7;background:#fbfbfc}
+.f select{max-width:170px;font-size:12px;padding:3px 5px;border:1px solid var(--line);border-radius:8px}
 .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px;align-items:center}
 .chip{font-size:11px;background:#eef2fb;color:#2b4c8c;border-radius:99px;padding:2px 9px;font-weight:700;cursor:help;white-space:nowrap}
 .chip.na{background:#f1f3f6;color:#8a94a6;text-decoration:line-through}
@@ -160,18 +165,18 @@ th{background:var(--soft);font-weight:700}
   <div class="kpis" id="kpis"></div>
   <div class="card"><h3>الجاهزية حسب المجال</h3><div id="domBars"></div></div>
   <div class="card"><h3>الجاهزية حسب المعيار</h3><div id="stdBars"></div></div>
-  <div class="card"><h3>🎯 مؤشرات تحتاج شاهدًا جاهزًا</h3><div id="gapList"></div></div>
+  <div class="card"><h3>🎯 مؤشرات لم يبدأ العمل عليها</h3><div id="gapList"></div></div>
   <div class="card"><h3>⚠️ شواهد متأخرة أو قريبة الاستحقاق</h3><div id="dueList"></div></div>
   <div class="card"><h3>👥 توزيع المهام على المسؤولين</h3><div id="ownList"></div></div>
 </section>
 
 <section class="view" id="v-ind">
   <div class="card noprint">
-    <div class="hint">وفق وثيقة معايير التقويم والتصنيف والاعتماد المدرسي — الإصدار الثاني 2026م (العام الدراسي 1448هـ). المؤشر «جاهز» إذا اكتمل كل شاهد مربوط به.</div>
+    <div class="hint">وفق وثيقة معايير التقويم والتصنيف والاعتماد المدرسي — الإصدار الثاني 2026م (العام الدراسي 1448هـ). نسبة المؤشر تتحرك مع كل شاهد: «قيد التجهيز» = نصف، «مكتمل» = كامل.</div>
     <div class="filters" style="margin-top:8px">
       <input id="iq" placeholder="🔎 بحث في المؤشرات أو الرمز...">
-      <select id="ist"><option value="">كل المؤشرات</option><option value="none">بلا شاهد جاهز</option>
-        <option value="part">جزئي</option><option value="ok">جاهز</option></select>
+      <select id="ist"><option value="">كل المؤشرات</option><option value="none">لم يبدأ</option>
+        <option value="part">قيد الإنجاز</option><option value="ok">جاهز</option></select>
     </div>
     <div class="hint" id="indNote" style="margin-top:6px"></div>
   </div>
@@ -284,20 +289,29 @@ const sIdx = s => Math.max(0, STATUS.indexOf(s));
 const weight = s => s==="غير مطلوب"?null : (s==="مكتمل"||s==="معتمد")?1 : s==="قيد التجهيز"?.5 : 0;
 function pctOf(list){const w=list.map(e=>weight(e.status)).filter(x=>x!==null);
   if(!w.length)return 100;return Math.round(w.reduce((a,b)=>a+b,0)/w.length*100)}
-const attOf = id => ATT.filter(a=>a.evidence_id===id);
+const live = f => !f.deleted_at;
+const attOf = id => ATT.filter(a=>a.evidence_id===id && live(a));
+const hasDelCol = () => ATT.length===0 || ("deleted_at" in ATT[0]);
 const IND = window.INDICATORS || [], INDB = window.IND_BY || {};
 const indOf = e => Array.isArray(e.indicators) ? e.indicators : [];
 const hasIndCol = () => EV.length>0 && Array.isArray(EV[0].indicators);
 // مؤشرات (*) لا تنطبق على المدارس الحكومية
 const applies = c => !(INDB[c] && INDB[c].p && (SET.kind||"حكومية")==="حكومية");
 const ready = e => e.status==="مكتمل" || e.status==="معتمد";
+// يتحرك المؤشر مع كل خطوة: «قيد التجهيز» نصف، و«مكتمل/معتمد» كامل
 function indState(c){
   const ev = EV.filter(e=>indOf(e).includes(c) && e.status!=="غير مطلوب");
-  if(!applies(c)) return {k:"na", ev, lbl:"لا ينطبق"};
+  if(!applies(c)) return {k:"na", ev, r:0, pct:null, lbl:"لا ينطبق"};
   const r = ev.filter(ready).length;
-  if(!ev.length || !r) return {k:"none", ev, r, lbl: ev.length?"بلا شاهد جاهز":"لا يوجد شاهد"};
-  return r===ev.length ? {k:"ok", ev, r, lbl:"جاهز"} : {k:"part", ev, r, lbl:`جزئي ${r}/${ev.length}`};
+  if(!ev.length) return {k:"none", ev, r, pct:0, lbl:"لا يوجد شاهد"};
+  const pct = pctOf(ev);
+  if(pct>=100) return {k:"ok", ev, r, pct, lbl:"جاهز ✓"};
+  if(pct===0) return {k:"none", ev, r, pct, lbl:"لم يبدأ"};
+  return {k:"part", ev, r, pct, lbl:`قيد الإنجاز ${pct}%`};
 }
+// متوسط إنجاز مجموعة مؤشرات (المنطبقة فقط)
+function indPct(list){ const v=list.filter(i=>applies(i.code)).map(i=>indState(i.code).pct);
+  return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : 0 }
 const chip = (c,x) => { const i=INDB[c]; return `<span class="chip ${applies(c)?"":"na"}" title="${esc(i?i.text:"")}">${esc(c)}${x||""}</span>` };
 
 /* ================= الإقلاع وتسجيل الدخول ================= */
@@ -454,15 +468,16 @@ function renderDash(){
    <div class="kpi"><b style="color:var(--ok)">${cnt("مكتمل")+cnt("معتمد")}</b><span>مكتمل / معتمد</span></div>
    <div class="kpi"><b style="color:var(--warn)">${cnt("قيد التجهيز")}</b><span>قيد التجهيز</span></div>
    <div class="kpi"><b style="color:var(--bad)">${cnt("لم يبدأ")}</b><span>لم يبدأ</span></div>
-   <div class="kpi"><b>${ATT.length}</b><span>ملف مرفوع</span></div>` + (()=>{
+   <div class="kpi"><b>${ATT.filter(live).length}</b><span>ملف مرفوع</span></div>` + (()=>{
      const ap=IND.filter(i=>applies(i.code)), ok=ap.filter(i=>indState(i.code).k==="ok").length;
-     return hasIndCol()?`<div class="kpi"><b style="color:#2b4c8c">${ok}/${ap.length}</b><span>مؤشر جاهز بالكامل</span></div>`:"" })();
+     return hasIndCol()?`<div class="kpi"><b style="color:#2b4c8c">${indPct(IND)}%</b><span>إنجاز المؤشرات</span></div>
+       <div class="kpi"><b style="color:#2b4c8c">${ok}/${ap.length}</b><span>مؤشر جاهز بالكامل</span></div>`:"" })();
   const gaps = hasIndCol() ? IND.filter(i=>indState(i.code).k==="none") : [];
   document.getElementById("gapList").innerHTML = !hasIndCol()
     ? `<div class="hint">لم تُربط الشواهد بالمؤشرات بعد.</div>`
     : gaps.length ? gaps.slice(0,12).map(i=>`<div class="f">${chip(i.code)}<span class="n" title="${esc(i.text)}">${esc(i.text)}</span></div>`).join("")
       + (gaps.length>12?`<div class="hint" style="margin-top:6px">و${gaps.length-12} مؤشرات أخرى — افتح تبويب «المؤشرات».</div>`:"")
-    : `<div class="hint">كل المؤشرات لها شاهد جاهز على الأقل 👏</div>`;
+    : `<div class="hint">بدأ العمل على كل المؤشرات 👏</div>`;
   const doms=[...new Set(EV.map(e=>e.domain))];
   document.getElementById("domBars").innerHTML = doms.map(d=>{
     const x=EV.filter(e=>e.domain===d), v=pctOf(x);
@@ -598,14 +613,9 @@ function itemHTML(e){
         <textarea onchange="upd('${e.id}','note',this.value)">${esc(e.note)}</textarea></div>`;
   }
   if(e.link) h+=`<div style="margin-top:6px"><a href="${esc(e.link)}" target="_blank" rel="noopener">فتح الرابط الخارجي ↗</a></div>`;
-  fs.forEach(f=>{
-    const ic=f.mime&&f.mime.includes("pdf")?"📕":f.mime&&f.mime.startsWith("image")?"🖼️":"📄";
-    h+=`<div class="f"><span>${ic}</span>
-      <span class="n">${esc(f.name)}<br><span class="sz">رفعه: ${esc(f.uploaded_by||"—")}</span></span>
-      <span class="sz">${fmtSize(f.size)}</span>
-      <button class="btn sm noprint" onclick="openFile('${f.path}')">فتح</button>
-      ${ro?"":`<button class="btn sm d noprint" onclick="rmFile('${f.id}','${f.path}')">✕</button>`}</div>`;
-  });
+  fs.forEach(f=>{ h+=fileRow(f,{ro}) });
+  if(!fs.length && !e.link && e.status!=="لم يبدأ" && e.status!=="غير مطلوب")
+    h+=`<div class="warn">⚠️ الحالة «${esc(e.status)}» لكن لا يوجد ملف مرفق — ارفع الشاهد.</div>`;
   if(!ro) h+=`<div class="drop noprint" onclick="pick('${e.id}')"
       ondragover="event.preventDefault();this.classList.add('hot')"
       ondragleave="this.classList.remove('hot')" ondrop="dropF(event,'${e.id}',this)">
@@ -641,8 +651,8 @@ async function addEv(code){
 }
 async function rmEv(id){
   const e=EV.find(x=>x.id===id); if(!canEdit()||!e||e.ord<1000)return;
-  if(attOf(id).length) return toast("احذف مرفقات الشاهد أولًا");
-  if(!confirm("حذف الشاهد «"+e.title+"»؟"))return;
+  const n=ATT.filter(a=>a.evidence_id===id).length;
+  if(!confirm("حذف الشاهد «"+e.title+"»؟"+(n?`\nمرفقاته (${n}) لن تُحذف، وستنتقل إلى «مكتبة الملفات ← غير مصنّفة».`:"")))return;
   const {error}=await sb.from("evidence").delete().eq("id",id);
   if(error) return toast("تعذّر الحذف");
   logIt("حذف شاهدًا: "+e.title); await loadAll(0); toast("حُذف الشاهد");
@@ -668,13 +678,15 @@ function renderInd(){
       const items=IND.filter(i=>i.std===sc).map(i=>({i,st:indState(i.code)}))
         .filter(o=>(!q||(o.i.code+" "+o.i.text).toLowerCase().includes(q)) && (!f||o.st.k===f));
       if(!items.length)return;
-      const ap=IND.filter(i=>i.std===sc&&applies(i.code)), ok=ap.filter(i=>indState(i.code).k==="ok").length;
+      const inS=IND.filter(i=>i.std===sc), sp=indPct(inS);
       D+=`<div class="std"><div class="sh"><span class="nm">المعيار <bdi class="code">${sc}</bdi>: ${esc(STANDARDS[sc])}</span>
-        <span class="pc" style="font-size:12px">${ok}/${ap.length} جاهز</span></div>`;
+        <span class="mini"><div class="bar"><i style="width:${sp}%"></i></div></span>
+        <span class="pc" style="font-size:12px">${sp}%</span></div>`;
       items.forEach(({i,st})=>{
         D+=`<div class="ind"><div class="row" style="align-items:flex-start;flex-wrap:nowrap">
           <span class="cd">${i.code}</span><span class="tx">${esc(i.text)}</span>
           <span class="pill p-${st.k}">${st.lbl}</span></div>
+          ${st.pct!==null?`<div class="ibar"><i style="width:${st.pct}%"></i></div>`:""}
           <div class="evl">${st.ev.map(e=>`<div><span class="pill s${sIdx(e.status)}">${esc(e.status)}</span>
             <a href="#" onclick="goEv('${e.id}');return false">${esc(e.title)}</a>
             <span class="sz hint">${attOf(e.id).length?"📎"+attOf(e.id).length:""}</span></div>`).join("")}</div>
@@ -684,7 +696,8 @@ function renderInd(){
       });
       D+=`</div>`;
     });
-    if(D) H+=`<div class="dom"><div class="dh"><span class="nm">${esc(DOMAINS[d])}</span></div>${D}</div>`;
+    if(D) H+=`<div class="dom"><div class="dh"><span class="nm">${esc(DOMAINS[d])}</span>
+      <span class="pc">${indPct(IND.filter(i=>i.dom===d))}%</span></div>${D}</div>`;
   });
   box.innerHTML = H || `<div class="card hint">لا توجد مؤشرات مطابقة.</div>`;
 }
@@ -721,7 +734,8 @@ async function upload(evId,files){
     const {error:e2} = await sb.from("attachments").insert({
       evidence_id:evId, school_id:SCHOOL, name:file.name, size:file.size, mime:file.type||"",
       path, uploaded_by: ME?.email||""});
-    if(e2){sb.storage.from("evidence").remove([path]);toast("تعذّر تسجيل "+file.name+" — أعد المحاولة");continue}
+    // لا نحذف الملف من التخزين: يبقى ويُستعاد لاحقًا إلى «غير مصنّفة»
+    if(e2){toast("تعذّر تسجيل "+file.name+" — أعد المحاولة");continue}
     logIt("رفع ملفًا: "+file.name); ok++;
   }
   if(!ok) return;
@@ -736,29 +750,83 @@ async function openFile(path){
   if(error||!data){ if(w) w.close(); return toast("تعذّر فتح الملف") }
   if(w) w.location.href = data.signedUrl; else location.href = data.signedUrl;
 }
+const fIcon = f => f.mime&&f.mime.includes("pdf")?"📕":f.mime&&f.mime.startsWith("image")?"🖼️":"📄";
+function fileRow(f,o){
+  o=o||{}; const ev=EV.find(e=>e.id===f.evidence_id);
+  const sub = o.lib ? `${f.evidence_id?esc(ev?ev.title:"—"):"<b>غير مصنّف</b>"} — رفعه ${esc(f.uploaded_by||"—")}` : `رفعه: ${esc(f.uploaded_by||"—")}`;
+  const when = f.created_at ? " — " + new Date(f.created_at).toLocaleDateString("ar-SA-u-ca-gregory") : "";
+  let b = `<button class="btn sm noprint" onclick="openFile('${f.path}')">فتح</button>
+    <button class="btn sm noprint" onclick="printFile('${f.path}','${esc(f.mime||"")}')">🖨️</button>`;
+  if(f.deleted_at){
+    b = `<button class="btn sm noprint" onclick="openFile('${f.path}')">فتح</button>`+
+      (canEdit()?`<button class="btn sm p noprint" onclick="restoreFile('${f.id}')">استعادة</button>`:"");
+  } else if(!o.ro && canEdit()){
+    if(o.lib) b += `<select class="noprint" onchange="moveFile('${f.id}',this.value)"><option value="">نقل إلى شاهد…</option>${evOptions(f.evidence_id)}</select>`;
+    b += `<button class="btn sm d noprint" title="نقل إلى المحذوفات" onclick="rmFile('${f.id}','${f.path}')">✕</button>`;
+  }
+  return `<div class="f ${f.deleted_at?"del":""}"><span>${fIcon(f)}</span>
+    <span class="n">${esc(f.name)}<br><span class="sz">${sub}${when}${f.deleted_at?" — حذفه "+esc(f.deleted_by||"—"):""}</span></span>
+    <span class="sz">${fmtSize(f.size)}</span>${b}</div>`;
+}
+function evOptions(cur){
+  return [...new Set(EV.map(e=>e.standard))].map(st=>`<optgroup label="${esc(st)}">`+
+    EV.filter(e=>e.standard===st&&e.id!==cur).map(e=>`<option value="${e.id}">${esc(e.title.slice(0,70))}</option>`).join("")+`</optgroup>`).join("");
+}
+// الحذف ينقل الملف إلى «المحذوفات» ويمكن استعادته؛ الحذف النهائي معطّل حتى انتهاء التقويم
 async function rmFile(id,path){
   if(!canEdit())return;
-  if(!confirm("حذف هذا المرفق نهائيًا؟"))return;
-  const {error}=await sb.from("attachments").delete().eq("id",id);
+  if(!hasDelCol()) return toast("الحذف غير متاح الآن — قاعدة البيانات تحتاج تحديث الملفات");
+  if(!confirm("نقل هذا المرفق إلى المحذوفات؟ يمكن استعادته من «مكتبة الملفات»."))return;
+  const f=ATT.find(x=>x.id===id);
+  const {error}=await sb.from("attachments").update({deleted_at:new Date().toISOString(),deleted_by:ME?.email||""}).eq("id",id);
   if(error)return toast("تعذّر الحذف");
-  await sb.storage.from("evidence").remove([path]);
-  logIt("حذف مرفقًا"); await loadAll(0); toast("حُذف المرفق");
+  logIt("نقل مرفقًا إلى المحذوفات: "+(f?f.name:"")); await loadAll(0); toast("نُقل إلى المحذوفات");
+}
+async function restoreFile(id){
+  if(!canEdit())return;
+  const f=ATT.find(x=>x.id===id);
+  const {error}=await sb.from("attachments").update({deleted_at:null,deleted_by:""}).eq("id",id);
+  if(error)return toast("تعذّرت الاستعادة");
+  logIt("استعاد مرفقًا: "+(f?f.name:"")); await loadAll(0); toast("استُعيد الملف");
+}
+async function moveFile(id,evId){
+  if(!canEdit()||!evId)return;
+  const f=ATT.find(x=>x.id===id), ev=EV.find(e=>e.id===evId);
+  const {error}=await sb.from("attachments").update({evidence_id:evId}).eq("id",id);
+  if(error)return toast("تعذّر النقل");
+  logIt(`نقل الملف ${f?f.name:""} إلى: ${ev?ev.title:""}`);
+  if(ev && ev.status==="لم يبدأ") await upd(evId,"status","قيد التجهيز");
+  await loadAll(0); toast("نُقل الملف");
+}
+// طباعة ملف: الصورة تُطبع مباشرة، والـPDF يُفتح في العارض للطباعة منه
+async function printFile(path,mime){
+  const w = window.open("about:blank","_blank");
+  const {data,error} = await sb.storage.from("evidence").createSignedUrl(path,3600);
+  if(error||!data){ if(w) w.close(); return toast("تعذّر فتح الملف") }
+  if(!w){ location.href=data.signedUrl; return }
+  if((mime||"").startsWith("image")){
+    w.document.write(`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><title>طباعة</title>
+      <style>@page{size:A4;margin:10mm}body{margin:0;display:grid;place-items:center}img{max-width:100%;max-height:277mm}</style></head>
+      <body><img src="${data.signedUrl}" onload="setTimeout(()=>print(),300)"></body></html>`);
+    w.document.close();
+  } else { w.location.href = data.signedUrl; toast("استخدم زر الطباعة في عارض الملف") }
 }
 
 /* ================= مكتبة الملفات ================= */
 function renderLib(){
   const q=document.getElementById("lq").value.trim().toLowerCase();
-  const tot=ATT.reduce((a,f)=>a+(f.size||0),0);
-  document.getElementById("libStat").textContent=`${ATT.length} ملف — الحجم الإجمالي ${fmtSize(tot)}`;
-  const list=ATT.filter(f=>!q||f.name.toLowerCase().includes(q));
-  document.getElementById("libList").innerHTML = list.length ? list.map(f=>{
-    const ev=EV.find(e=>e.id===f.evidence_id);
-    const ic=f.mime&&f.mime.includes("pdf")?"📕":f.mime&&f.mime.startsWith("image")?"🖼️":"📄";
-    return `<div class="f"><span>${ic}</span>
-      <span class="n">${esc(f.name)}<br><span class="sz">${esc(ev?ev.title:"—")} — رفعه ${esc(f.uploaded_by||"—")}</span></span>
-      <span class="sz">${fmtSize(f.size)}</span>
-      <button class="btn sm" onclick="openFile('${f.path}')">فتح</button></div>`
-  }).join("") : `<div class="hint">لا توجد ملفات بعد.</div>`;
+  const L=ATT.filter(live), D=ATT.filter(f=>!live(f));
+  const tot=L.reduce((a,f)=>a+(f.size||0),0);
+  document.getElementById("libStat").textContent=`${L.length} ملف — الحجم الإجمالي ${fmtSize(tot)}`+(D.length?` — في المحذوفات ${D.length}`:"");
+  const m=f=>{ const ev=EV.find(e=>e.id===f.evidence_id); return !q||(f.name+" "+(ev?ev.title:"")).toLowerCase().includes(q) };
+  const U=L.filter(f=>!f.evidence_id).filter(m), list=L.filter(f=>f.evidence_id).filter(m), del=D.filter(m);
+  document.getElementById("libList").innerHTML =
+    (U.length ? `<h3 style="margin:0 0 4px;font-size:14px;color:var(--warn)">📥 ملفات غير مصنّفة (${U.length})</h3>
+      <div class="hint">ملفات مستعادة لم تُربط بشاهد بعد — اختر لكل ملف شاهده من «نقل إلى شاهد…».</div>`
+      + U.map(f=>fileRow(f,{lib:1})).join("") + `<h3 style="margin:16px 0 4px;font-size:14px">📁 ملفات الشواهد</h3>` : "")
+    + (list.length ? list.map(f=>fileRow(f,{lib:1})).join("") : `<div class="hint">لا توجد ملفات${q?" مطابقة":" بعد"}.</div>`)
+    + (del.length ? `<h3 style="margin:16px 0 4px;font-size:14px">🗑️ المحذوفات (${del.length})</h3>
+      <div class="hint">الملفات المحذوفة محفوظة هنا ويمكن استعادتها.</div>` + del.map(f=>fileRow(f,{lib:1})).join("") : "");
 }
 document.getElementById("lq").oninput=renderLib;
 
@@ -804,7 +872,7 @@ function renderRep(){
   });
   if(hasIndCol() && document.getElementById("repInd").checked){
     const ap=IND.filter(i=>applies(i.code)), ok=ap.filter(i=>indState(i.code).k==="ok").length;
-    h+=`<h4 style="margin:16px 0 5px;color:#0f5c4a;break-before:page">تغطية مؤشرات التقويم المدرسي — ${ok} من ${ap.length} مؤشرًا جاهز</h4>
+    h+=`<h4 style="margin:16px 0 5px;color:#0f5c4a;break-before:page">تغطية مؤشرات التقويم المدرسي — إنجاز ${indPct(IND)}% — ${ok} من ${ap.length} مؤشرًا جاهز</h4>
       <table><tr><th style="width:11%">الرمز</th><th>المؤشر</th><th style="width:10%">الشواهد</th><th style="width:14%">الحالة</th></tr>`+
       IND.filter(i=>!only||indState(i.code).k!=="ok").map(i=>{const st=indState(i.code);
         return `<tr><td class="code">${i.code}</td><td>${esc(i.text)}</td><td>${st.k==="na"?"—":(st.r||0)+"/"+st.ev.length}</td><td>${st.lbl}</td></tr>`}).join("")+`</table>`;
