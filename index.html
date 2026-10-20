@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>منصة شواهد التقويم المدرسي الخارجي</title>
+<meta name="description" content="إدارة شواهد وأدلة التقويم المدرسي الخارجي وجاهزية المدرسة">
+<meta property="og:title" content="منصة شواهد التقويم المدرسي الخارجي">
+<meta property="og:description" content="جاهزية الشواهد والأدلة حسب المجالات والمعايير">
+<meta property="og:image" content="https://tsj7747-eng.github.io/tqweem/logo.png">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#0f5c4a">
+<link rel="icon" href="logo.png"><link rel="apple-touch-icon" href="logo.png">
 <style>
 :root{--bg:#f4f6f9;--card:#fff;--ink:#16202e;--muted:#6b7a90;--line:#e2e8f1;
  --brand:#0f5c4a;--brand2:#137a62;--accent:#c9a227;--ok:#16794f;--warn:#b7791f;
@@ -83,8 +90,9 @@ th{background:var(--soft);font-weight:700}
 .gate h2{margin:0 0 4px;font-size:18px;color:var(--brand)}
 .gate .fullin{margin-top:10px}
 .err{color:var(--bad);font-size:12.5px;margin-top:8px;min-height:18px}
-@media print{header,nav,.noprint{display:none!important}body{background:#fff;font-size:11.5px}
- main{padding:0}.card,.dom{box-shadow:none;break-inside:avoid}@page{size:A4 portrait;margin:12mm}}
+@media print{header,nav,.noprint,.toast,.gate{display:none!important}body{background:#fff;font-size:11.5px}
+ main{padding:0}.card,.dom{box-shadow:none;break-inside:avoid}#repBody{break-inside:auto;border:0;padding:0}
+ tr{break-inside:avoid}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 portrait;margin:12mm}}
 .sign{display:flex;justify-content:space-between;margin-top:36px;text-align:center;font-size:12px}
 .sign div{flex:1}.sign .ln{margin-top:32px;border-top:1px solid #333;width:70%;margin-inline:auto}
 </style>
@@ -173,7 +181,7 @@ th{background:var(--soft);font-weight:700}
 
 <section class="view" id="v-rep">
   <div class="card noprint"><h3>تقرير جاهزية الشواهد</h3>
-    <div class="row"><button class="btn p" onclick="window.print()">🖨️ طباعة</button>
+    <div class="row"><button class="btn p" onclick="printRep()">🖨️ طباعة</button>
       <label class="row" style="gap:5px"><input type="checkbox" id="repMiss"> النواقص فقط</label></div></div>
   <div class="card" id="repBody"></div>
 </section>
@@ -217,7 +225,7 @@ th{background:var(--soft);font-weight:700}
 </main>
 <div class="toast" id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script>
 /* ================= الحالة ================= */
@@ -230,7 +238,7 @@ const isSuper = () => ROLE==="superadmin";
 
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const hijri = d => {try{return new Intl.DateTimeFormat("ar-SA-u-ca-islamic-umalqura",
-  {day:"numeric",month:"long",year:"numeric"}).format(d)+" هـ"}catch(e){return ""}};
+  {day:"numeric",month:"long",year:"numeric"}).format(d).replace(/\s*هـ\s*$/,"")+" هـ"}catch(e){return ""}};
 const fmtSize = b => b<1024?b+" ب":b<1048576?(b/1024).toFixed(1)+" ك.ب":(b/1048576).toFixed(2)+" م.ب";
 function toast(m){const t=document.getElementById("toast");t.textContent=m;t.classList.add("on");
   clearTimeout(t._x);t._x=setTimeout(()=>t.classList.remove("on"),2400)}
@@ -250,6 +258,10 @@ function boot(){
       "لم يتم ضبط ملف config.js بعد — ضع فيه رابط المشروع ومفتاح anon.";
     document.getElementById("loginBtn").disabled = true; return;
   }
+  if(!window.supabase){
+    document.getElementById("loginErr").textContent = "تعذّر تحميل مكتبة الاتصال — تحقق من الإنترنت ثم حدّث الصفحة.";
+    document.getElementById("loginBtn").disabled = true; return;
+  }
   sb = window.supabase.createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY);
   if(CFG.SCHOOL_NAME) document.getElementById("schoolName").textContent = CFG.SCHOOL_NAME;
   if(CFG.EDU_NAME) document.querySelector("header .hsub").textContent = CFG.EDU_NAME;
@@ -259,23 +271,33 @@ function boot(){
     L.style.background="#fff"; L.style.padding="3px";
   }
   sb.auth.getSession().then(({data})=>{ if(data.session) afterLogin(data.session.user) });
+  sb.auth.onAuthStateChange(ev=>{ if(ev==="SIGNED_OUT" && booted) location.reload() });
 }
 document.getElementById("loginBtn").onclick = doLogin;
 document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin()});
 
 async function doLogin(){
   const btn=document.getElementById("loginBtn"), err=document.getElementById("loginErr");
+  const email=document.getElementById("em").value.trim(), password=document.getElementById("pw").value;
+  if(!email||!password){err.textContent="اكتب البريد وكلمة المرور."; return}
   err.textContent=""; btn.disabled=true; btn.textContent="جارٍ الدخول…";
-  const {data,error} = await sb.auth.signInWithPassword({
-    email:document.getElementById("em").value.trim(),
-    password:document.getElementById("pw").value});
+  let data=null, error=null;
+  try{ ({data,error} = await sb.auth.signInWithPassword({email,password})) }catch(x){ error=x }
   btn.disabled=false; btn.textContent="دخول";
-  if(error){err.textContent="تعذّر الدخول: تحقق من البريد وكلمة المرور."; return}
+  if(error){err.textContent = /fetch|network/i.test(error.message||"")
+    ? "تعذّر الاتصال بالخادم — تحقق من الإنترنت." : "تعذّر الدخول: تحقق من البريد وكلمة المرور."; return}
   afterLogin(data.user);
 }
-async function signOut(){ await sb.auth.signOut(); location.reload() }
+async function signOut(){ try{ await sb.auth.signOut() }catch(e){} location.reload() }
 
+let booted=false, refreshTimer=null;
+const ls = {get:k=>{try{return localStorage.getItem(k)}catch(e){return null}},
+            set:(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}}};
+// لا تُحدَّث الصفحة تلقائيًا أثناء الكتابة حتى لا يضيع ما كُتب ولم يُحفظ
+const busy = () => { const a=document.activeElement;
+  return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && !!a.closest("main") };
 async function afterLogin(user){
+  if(booted) return; booted=true;
   ME = user;
   const {data:prof} = await sb.from("profiles").select("*").eq("id",user.id).single();
   ROLE = prof?.role || "viewer";
@@ -284,13 +306,13 @@ async function afterLogin(user){
   SCHOOL = prof?.school_id || (SCHOOLS[0] && SCHOOLS[0].id) || null;
   if(isSuper()){
     document.getElementById("navSch").style.display="";
-    const saved = localStorage.getItem("tqweem_school");
+    const saved = ls.get("tqweem_school");
     if(saved && SCHOOLS.some(x=>x.id===saved)) SCHOOL = saved;
   }
   if(SCHOOLS.length>1 || isSuper()){
     const w=document.getElementById("schPickWrap"), p=document.getElementById("schPick");
     w.style.display=""; p.innerHTML=SCHOOLS.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("");
-    p.value=SCHOOL||""; p.onchange=()=>{SCHOOL=p.value;localStorage.setItem("tqweem_school",SCHOOL);loadAll(1)};
+    p.value=SCHOOL||""; p.onchange=()=>{SCHOOL=p.value;ls.set("tqweem_school",SCHOOL);loadAll(1)};
   }
   if(!SCHOOL){ toast("لم تُسنَد إلى أي مدرسة — راجع مدير المنصة") }
   document.getElementById("meLbl").textContent = "👤 " + (prof?.full_name || user.email);
@@ -301,7 +323,7 @@ async function afterLogin(user){
   document.getElementById("saveSchoolBtn").disabled = !canEdit();
   document.getElementById("gate").style.display="none";
   await loadAll(0);
-  setInterval(()=>{if(document.visibilityState==="visible")loadAll(0)},90000);
+  refreshTimer = setInterval(()=>{if(document.visibilityState==="visible" && !busy())loadAll(0)},90000);
 }
 
 /* ================= تحميل البيانات ================= */
@@ -352,7 +374,7 @@ function renderSchools(){
   }).join("") || `<div class="hint">لا توجد مدارس بعد.</div>`;
 }
 function goSchool(id){
-  SCHOOL=id; localStorage.setItem("tqweem_school",id);
+  SCHOOL=id; ls.set("tqweem_school",id);
   const p=document.getElementById("schPick"); if(p)p.value=id;
   loadAll(1);
   document.querySelectorAll("#nav button").forEach(x=>x.classList.remove("on"));
@@ -377,7 +399,8 @@ function renderDash(){
   document.getElementById("arc").style.strokeDashoffset = C - C*p/100;
   document.getElementById("ringVal").textContent = p+"%";
   const cnt = s => EV.filter(e=>e.status===s).length;
-  document.getElementById("kpis").innerHTML = `
+  const vd = SET.visit ? daysTo(SET.visit) : null;
+  document.getElementById("kpis").innerHTML = (vd!==null ? `<div class="kpi"><b style="color:${vd<0?"var(--muted)":vd<=14?"var(--bad)":"var(--brand)"}">${vd<0?"تمّت":vd===0?"اليوم":vd}</b><span>${vd>0?"يومًا على زيارة التقويم":"زيارة التقويم"}</span></div>` : "") + `
    <div class="kpi"><b>${EV.length}</b><span>إجمالي الشواهد</span></div>
    <div class="kpi"><b style="color:var(--ok)">${cnt("مكتمل")+cnt("معتمد")}</b><span>مكتمل / معتمد</span></div>
    <div class="kpi"><b style="color:var(--warn)">${cnt("قيد التجهيز")}</b><span>قيد التجهيز</span></div>
@@ -483,7 +506,7 @@ function renderTree(){
 }
 function itemHTML(e){
   const ro=!canEdit(), fs=attOf(e.id);
-  const stamp = e.updated_by ? `<div class="hint" style="margin-top:5px">آخر تحديث: ${esc(e.updated_by)} — ${e.updated_at?new Date(e.updated_at).toLocaleDateString("ar"):""}</div>` : "";
+  const stamp = e.updated_by ? `<div class="hint" style="margin-top:5px">آخر تحديث: <bdi>${esc(e.updated_by)}</bdi> — <bdi>${e.updated_at?new Date(e.updated_at).toLocaleDateString("ar-SA-u-ca-gregory"):""}</bdi></div>` : "";
   let h=`<div class="item"><div class="it">
     <span class="pill s${sIdx(e.status)}">${esc(e.status)}</span>
     <div class="tx">${esc(e.title)}</div></div><div class="meta">`;
@@ -522,8 +545,9 @@ async function upd(id,field,val){
   if(!canEdit())return;
   const patch={}; patch[field]=val;
   patch.updated_by = ME?.email||""; patch.updated_at = new Date().toISOString();
-  const {error} = await sb.from("evidence").update(patch).eq("id",id);
-  if(error) return toast("لم يُحفظ التعديل — تحقق من صلاحيتك");
+  let error=null;
+  try{ ({error} = await sb.from("evidence").update(patch).eq("id",id)) }catch(x){ error=x }
+  if(error) return toast("لم يُحفظ التعديل — تحقق من الاتصال أو صلاحيتك");
   const row=EV.find(x=>x.id===id); if(row) Object.assign(row,patch);
   const lbl={status:"الحالة",owner:"المسؤول",due:"تاريخ الاستحقاق",note:"الملاحظات",link:"الرابط"}[field]||field;
   logIt(`عدّل ${lbl} — ${row?row.title:""}`);
@@ -532,11 +556,13 @@ async function upd(id,field,val){
 
 /* ================= المرفقات ================= */
 function pick(id){const i=document.createElement("input");i.type="file";i.multiple=true;
-  i.onchange=()=>upload(id,i.files);i.click()}
+  i.style.display="none";document.body.appendChild(i);
+  i.onchange=()=>{const f=[...i.files];i.remove();if(f.length)upload(id,f)};i.click()}
 function dropF(ev,id,el){ev.preventDefault();el.classList.remove("hot");upload(id,ev.dataTransfer.files)}
 async function upload(evId,files){
   if(!canEdit())return;
   const max=(CFG.MAX_FILE_MB||25)*1024*1024;
+  let ok=0;
   for(const file of files){
     if(file.size>max){toast(`«${file.name}» أكبر من الحد المسموح`);continue}
     const ext=(file.name.match(/\.[a-z0-9]+$/i)||[""])[0];
@@ -547,24 +573,27 @@ async function upload(evId,files){
     const {error:e2} = await sb.from("attachments").insert({
       evidence_id:evId, school_id:SCHOOL, name:file.name, size:file.size, mime:file.type||"",
       path, uploaded_by: ME?.email||""});
-    if(e2){toast("رُفع الملف لكن لم يُسجَّل");continue}
-    logIt("رفع ملفًا: "+file.name);
+    if(e2){sb.storage.from("evidence").remove([path]);toast("تعذّر تسجيل "+file.name+" — أعد المحاولة");continue}
+    logIt("رفع ملفًا: "+file.name); ok++;
   }
+  if(!ok) return;
   const row=EV.find(x=>x.id===evId);
   if(row && row.status==="لم يبدأ") await upd(evId,"status","قيد التجهيز");
-  await loadAll(0); toast("تم الرفع");
+  await loadAll(0); toast(ok===1?"تم رفع الملف":"تم رفع "+ok+" ملفات");
 }
 async function openFile(path){
+  // تُفتح النافذة فورًا مع الضغطة، وإلا منعها متصفح الجوال
+  const w = window.open("about:blank","_blank");
   const {data,error} = await sb.storage.from("evidence").createSignedUrl(path,3600);
-  if(error||!data) return toast("تعذّر فتح الملف");
-  window.open(data.signedUrl,"_blank");
+  if(error||!data){ if(w) w.close(); return toast("تعذّر فتح الملف") }
+  if(w) w.location.href = data.signedUrl; else location.href = data.signedUrl;
 }
 async function rmFile(id,path){
   if(!canEdit())return;
   if(!confirm("حذف هذا المرفق نهائيًا؟"))return;
-  await sb.storage.from("evidence").remove([path]);
   const {error}=await sb.from("attachments").delete().eq("id",id);
   if(error)return toast("تعذّر الحذف");
+  await sb.storage.from("evidence").remove([path]);
   logIt("حذف مرفقًا"); await loadAll(0); toast("حُذف المرفق");
 }
 
@@ -589,7 +618,7 @@ document.getElementById("lq").oninput=renderLib;
 function renderLog(){
   document.getElementById("logList").innerHTML = LOG.length ? LOG.map(l=>
     `<div class="f"><span class="n">${esc(l.action)}</span>
-     <span class="sz">${esc(l.actor)} — ${new Date(l.created_at).toLocaleString("ar")}</span></div>`).join("")
+     <span class="sz"><bdi>${esc(l.actor)}</bdi> — <bdi>${new Date(l.created_at).toLocaleString("ar-SA-u-ca-gregory")}</bdi></span></div>`).join("")
     : `<div class="hint">لا يوجد نشاط مسجَّل بعد.</div>`;
 }
 
@@ -631,6 +660,12 @@ function renderRep(){
   document.getElementById("repBody").innerHTML=h;
 }
 document.getElementById("repMiss").onchange=renderRep;
+async function printRep(){
+  renderRep();
+  await Promise.all([...document.querySelectorAll("#repBody img")].map(i=>i.complete?0:
+    new Promise(r=>{i.onload=i.onerror=r; setTimeout(r,4000)})));
+  window.print();
+}
 
 /* ================= الإعدادات ================= */
 function fillSchool(){

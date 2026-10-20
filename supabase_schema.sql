@@ -185,7 +185,7 @@ returns uuid
 language plpgsql security definer set search_path = public as $fn$
 declare sid uuid;
 begin
-  if auth.uid() is not null and public.my_role() not in ('superadmin','admin') then
+  if auth.uid() is not null and not public.is_super() then
     raise exception 'غير مصرح لك بإضافة مدرسة';
   end if;
   insert into public.schools (name) values (p_name) returning id into sid;
@@ -289,7 +289,8 @@ create policy p_attach_del on public.attachments for delete
 create policy p_activity_read on public.activity for select
   using (public.is_super() or school_id = public.my_school());
 create policy p_activity_ins on public.activity for insert
-  with check (auth.uid() is not null);
+  with check (auth.uid() is not null
+              and (public.is_super() or school_id = public.my_school()));
 
 create policy p_settings_read on public.settings for select using (auth.uid() is not null);
 create policy p_settings_upd  on public.settings for update
