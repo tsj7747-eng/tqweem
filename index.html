@@ -121,6 +121,7 @@ th{background:var(--soft);font-weight:700}
 @media print{#v-imp .card,#impTree{display:none!important}#impPrint{display:block;page:impl}
  #impPrint table{font-size:9.5px}#impPrint td{vertical-align:top;white-space:pre-line}@page impl{size:A4 landscape;margin:9mm}}
 .sign div{flex:1}.sign .ln{margin-top:32px;border-top:1px solid #333;width:70%;margin-inline:auto}
+.req{margin:8px 0 2px}.req ul{margin:4px 0 0;padding-inline-start:20px}.req li{margin:2px 0}.req textarea{width:100%;box-sizing:border-box}
 </style>
 </head>
 <body>
@@ -588,7 +589,7 @@ function match(e){
   if(ow&&ow!=="__none"&&(e.owner||"").trim()!==ow)return false;
   const fi=document.getElementById("find").value;
   if(fi&&!indOf(e).includes(fi))return false;
-  if(q&&!((e.title+" "+e.owner+" "+e.note+" "+e.standard+" "+indOf(e).join(" ")).toLowerCase().includes(q)))return false;
+  if(q&&!((e.title+" "+(e.required||"")+" "+e.owner+" "+e.note+" "+e.standard+" "+indOf(e).join(" ")).toLowerCase().includes(q)))return false;
   return true;
 }
 function renderTree(){
@@ -630,6 +631,10 @@ function itemHTML(e){
         IND.filter(i=>applies(i.code)&&!indOf(e).includes(i.code)).map(i=>`<option value="${i.code}">⁦${pcode(i.code)}⁩</option>`).join("")+`</select>`)+
       (indOf(e).length?"":`<span class="hint">غير مربوط</span>`)+`</div>`;
   }
+  { const rq=(e.required||"").split("\n").map(x=>x.trim()).filter(Boolean);
+    h+= ro ? (rq.length?`<div class="req"><span class="lbl">الشواهد المطلوبة</span><ul>${rq.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"")
+      : `<div class="req"><span class="lbl">الشواهد المطلوبة <span class="hint">(شاهد في كل سطر)</span></span>
+        <textarea rows="${Math.max(2,rq.length+1)}" placeholder="اكتب الشواهد المطلوبة لهذا المؤشر، كل شاهد في سطر" onchange="upd('${e.id}','required',this.value)">${esc(e.required||"")}</textarea></div>`; }
   h+=`<div class="meta">`;
   if(ro){
     h+=`<div><span class="lbl">الحالة</span><b>${esc(e.status)}</b></div>
@@ -666,7 +671,7 @@ async function upd(id,field,val){
   try{ ({error} = await sb.from("evidence").update(patch).eq("id",id)) }catch(x){ error=x }
   if(error) return toast("لم يُحفظ التعديل — تحقق من الاتصال أو صلاحيتك");
   const row=EV.find(x=>x.id===id); if(row) Object.assign(row,patch);
-  const lbl={status:"الحالة",owner:"المسؤول",due:"تاريخ الاستحقاق",note:"الملاحظات",link:"الرابط",indicators:"المؤشرات"}[field]||field;
+  const lbl={required:"الشواهد المطلوبة",status:"الحالة",owner:"المسؤول",due:"تاريخ الاستحقاق",note:"الملاحظات",link:"الرابط",indicators:"المؤشرات"}[field]||field;
   logIt(`عدّل ${lbl} — ${row?row.title:""}`);
   renderTree(); renderInd(); renderDash(); toast("تم الحفظ");
 }
@@ -1004,12 +1009,12 @@ function renderRep(){
   [...new Set(EV.map(e=>e.domain))].forEach(dm=>{
     const inD=EV.filter(e=>e.domain===dm);
     const rows=inD.filter(e=>!(only&&sIdx(e.status)>=2)).map(e=>
-      `<tr><td>${esc(e.standard)}</td><td>${esc(e.title)}</td><td>${esc(e.status)}</td>
+      `<tr><td>${esc(e.standard)}</td><td>${esc(e.title)}${(e.required||"").trim()?`<div style="font-size:10.5px;color:#555;margin-top:3px">${(e.required||"").split("\n").map(x=>x.trim()).filter(Boolean).map(x=>"• "+esc(x)).join("<br>")}</div>`:""}</td><td>${esc(e.status)}</td>
        <td>${esc(e.owner||"—")}</td><td>${e.due?hijri(new Date(e.due+"T00:00:00")):"—"}</td>
        <td>${attOf(e.id).length||(e.link?"رابط":"—")}</td>${hasIndCol()?`<td class="code" style="font-size:10.5px">${indOf(e).map(pcode).join("<br>")||"—"}</td>`:""}</tr>`).join("");
     if(!rows)return;
     h+=`<h4 style="margin:13px 0 5px;color:#0f5c4a">${esc(dm)} — الجاهزية ${pctOf(inD)}%</h4>
-      <table><tr><th style="width:20%">المعيار</th><th>الشاهد المطلوب</th><th style="width:11%">الحالة</th>
+      <table><tr><th style="width:20%">المعيار</th><th>المؤشر والشواهد المطلوبة</th><th style="width:11%">الحالة</th>
       <th style="width:13%">المسؤول</th><th style="width:15%">الاستحقاق</th>
       <th style="width:8%">المرفقات</th>${hasIndCol()?`<th style="width:10%">المؤشرات</th>`:""}</tr>${rows}</table>`;
   });
