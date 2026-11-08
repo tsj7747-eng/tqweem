@@ -323,7 +323,12 @@ const IND = window.INDICATORS || [], INDB = window.IND_BY || {};
 const indOf = e => Array.isArray(e.indicators) ? e.indicators : [];
 const hasIndCol = () => EV.length>0 && Array.isArray(EV[0].indicators);
 // مؤشرات (*) لا تنطبق على المدارس الحكومية
-const applies = c => !(INDB[c] && INDB[c].p && (SET.kind||"حكومية")==="حكومية");
+const applies = c => { const i=INDB[c]; if(!i) return true;
+  if(i.p && (SET.kind||"حكومية")==="حكومية") return false;
+  const sec=/ثانو/.test(SET.stage||""); if(i.sec && !sec) return false; if(i.nafs && sec) return false; return true };
+// ترقيم خطة التحسين: تسلسل المؤشرات المنطبقة داخل كل معيار (مثل 1-4-1-1 للرخصة المهنية في المدارس الحكومية)
+const pcode = c => { const i=INDB[c]; if(!i||!applies(c)) return c;
+  const n=IND.filter(x=>x.std===i.std && applies(x.code)).findIndex(x=>x.code===c); return n<0?c:`${i.std}-1-${n+1}` };
 const ready = e => e.status==="مكتمل" || e.status==="معتمد";
 // يتحرك المؤشر مع كل خطوة: «قيد التجهيز» نصف، و«مكتمل/معتمد» كامل
 function indState(c){
@@ -339,7 +344,7 @@ function indState(c){
 // متوسط إنجاز مجموعة مؤشرات (المنطبقة فقط)
 function indPct(list){ const v=list.filter(i=>applies(i.code)).map(i=>indState(i.code).pct);
   return v.length ? Math.round(v.reduce((a,b)=>a+b,0)/v.length) : 0 }
-const chip = (c,x) => { const i=INDB[c]; return `<span class="chip ${applies(c)?"":"na"}" title="${esc(i?i.text:"")}">${esc(c)}${x||""}</span>` };
+const chip = (c,x) => { const i=INDB[c]; return `<span class="chip ${applies(c)?"":"na"}" title="${esc(i?i.text:"")}">${esc(pcode(c))}${x||""}</span>` };
 
 /* ================= الإقلاع وتسجيل الدخول ================= */
 function boot(){
@@ -429,7 +434,7 @@ async function loadAll(loud){
     IMP_OK = !im.error; IMP = im.data||[];
     if(e.error) throw e.error;
     SCHOOLS = s.data || SCHOOLS;
-    ALL_EV = e.data||[];
+    ALL_EV = (e.data||[]).filter(x=>!x.archived);
     EV  = SCHOOL ? ALL_EV.filter(x=>x.school_id===SCHOOL) : ALL_EV;
     ATT = (a.data||[]).filter(x=>!SCHOOL||x.school_id===SCHOOL);
     LOG = (l.data||[]).filter(x=>!SCHOOL||x.school_id===SCHOOL);
@@ -561,7 +566,7 @@ function fillFilters(){
       .map(o=>`<option value="${esc(o)}">${esc(o)}</option>`).join("");
   fo.value=vo;
   const fi=document.getElementById("find"), vi=fi.value;
-  fi.innerHTML=`<option value="">كل المؤشرات</option>`+IND.map(i=>`<option value="${i.code}">⁦${i.code}⁩ — ${esc(i.text.slice(0,40))}…</option>`).join("");
+  fi.innerHTML=`<option value="">كل المؤشرات</option>`+IND.filter(i=>applies(i.code)).map(i=>`<option value="${i.code}">⁦${pcode(i.code)}⁩ — ${esc(i.text.slice(0,40))}…</option>`).join("");
   fi.value=vi;
 }
 ["fq","fst","fdom","fown","find"].forEach(id=>{
@@ -622,7 +627,7 @@ function itemHTML(e){
     h+=`<div class="chips"><span class="lbl" style="margin:0">المؤشرات:</span>`+
       indOf(e).map(c=>chip(c, ro?"":`<button class="noprint" title="إلغاء الربط" onclick="unlinkInd('${e.id}','${c}')">✕</button>`)).join("")+
       (ro?"":`<select class="noprint" onchange="linkInd('${e.id}',this.value)"><option value="">＋ ربط بمؤشر</option>`+
-        IND.filter(i=>!indOf(e).includes(i.code)).map(i=>`<option value="${i.code}">⁦${i.code}⁩</option>`).join("")+`</select>`)+
+        IND.filter(i=>applies(i.code)&&!indOf(e).includes(i.code)).map(i=>`<option value="${i.code}">⁦${pcode(i.code)}⁩</option>`).join("")+`</select>`)+
       (indOf(e).length?"":`<span class="hint">غير مربوط</span>`)+`</div>`;
   }
   h+=`<div class="meta">`;
@@ -674,7 +679,7 @@ async function addEv(code){
   const inp=document.getElementById("add-"+code), t=(inp.value||"").trim();
   if(!t) return toast("اكتب اسم الشاهد");
   const i=INDB[code], ord=1000+Math.max(0,...EV.map(e=>e.ord>=1000?e.ord-1000:0))+1;
-  const row={school_id:SCHOOL, ord, domain:DOMAINS[i.dom], standard:`المعيار ${i.std}: ${STANDARDS[i.std]}`,
+  const row={school_id:SCHOOL, ord, domain:DOMAINS[i.dom], standard:`معيار: ${STANDARDS[i.std]}`,
     title:t, indicators:[code], updated_by:ME?.email||""};
   let error=null; try{ ({error}=await sb.from("evidence").insert(row)) }catch(x){ error=x }
   if(error) return toast("تعذّرت الإضافة — تحقق من الاتصال أو صلاحيتك");
@@ -699,23 +704,23 @@ function renderInd(){
     if(!EV.length || IND.length===0) return;
   } else {
     const k = (SET.kind||"حكومية");
-    note.textContent = k==="حكومية" ? "المؤشرات المشطوبة (1-4-1-1 إلى 1-4-1-3) خاصة بالمدارس الأهلية والعالمية ولا تُحسب لمدرستك." : "";
+    note.textContent = "الأسماء والترقيم كما في خطة التحسين، وتظهر المؤشرات المنطبقة على مدرستك فقط.";
   }
   const q=document.getElementById("iq").value.trim().toLowerCase(), f=document.getElementById("ist").value;
   let H="";
   Object.keys(DOMAINS).forEach(d=>{
     let D="";
     Object.keys(STANDARDS).filter(s=>s[0]===d).forEach(sc=>{
-      const items=IND.filter(i=>i.std===sc).map(i=>({i,st:indState(i.code)}))
-        .filter(o=>(!q||(o.i.code+" "+o.i.text).toLowerCase().includes(q)) && (!f||o.st.k===f));
+      const items=IND.filter(i=>i.std===sc&&applies(i.code)).map(i=>({i,st:indState(i.code)}))
+        .filter(o=>(!q||(pcode(o.i.code)+" "+o.i.text).toLowerCase().includes(q)) && (!f||o.st.k===f));
       if(!items.length)return;
       const inS=IND.filter(i=>i.std===sc), sp=indPct(inS);
-      D+=`<div class="std"><div class="sh"><span class="nm">المعيار <bdi class="code">${sc}</bdi>: ${esc(STANDARDS[sc])}</span>
+      D+=`<div class="std"><div class="sh"><span class="nm">معيار: ${esc(STANDARDS[sc])}</span>
         <span class="mini"><div class="bar"><i style="width:${sp}%"></i></div></span>
         <span class="pc" style="font-size:12px">${sp}%</span></div>`;
       items.forEach(({i,st})=>{
         D+=`<div class="ind"><div class="row" style="align-items:flex-start;flex-wrap:nowrap">
-          <span class="cd">${i.code}</span><span class="tx">${esc(i.text)}</span>
+          <span class="cd">${pcode(i.code)}</span><span class="tx">${esc(i.text)}</span>
           <span class="pill p-${st.k}">${st.lbl}</span></div>
           ${st.pct!==null?`<div class="ibar"><i style="width:${st.pct}%"></i></div>`:""}
           <div class="evl">${st.ev.map(e=>`<div><span class="pill s${sIdx(e.status)}">${esc(e.status)}</span>
@@ -877,9 +882,7 @@ const isSec = () => /ثانو/.test(SET.stage||"");
 // المؤشرات المعروضة: المنطبقة على المدرسة، وللثانوي التحصيلي والقدرات بدل مؤشرات نافس
 function impCodes(){
   const out=[];
-  IND.forEach(i=>{ if(!applies(i.code)) return;
-    if(i.std==="3-1"){ if(isSec()){ if(!out.includes("3-1-S1")) out.push("3-1-S1","3-1-S2") } else out.push(i.code) }
-    else out.push(i.code) });
+  IND.forEach(i=>{ if(applies(i.code)) out.push(i.code) });
   // فقط المؤشرات الواردة في خطة التحسين (القالب) أو المحفوظة للمدرسة
   return out.filter(c=>(window.IMP_TPL||{})[c] || IMP.some(r=>r.code===c));
 }
@@ -917,7 +920,7 @@ function renderImp(){
     const list=codes.filter(c=>impStd(c)===sd && impMatch(c,impVal(c))); if(!list.length) return;
     h+=`<div class="dom"><div class="dh"><span class="nm">${esc((window.DOMAINS||{})[sd[0]]||"")} — معيار: ${esc((window.STANDARDS||{})[sd]||sd)}</span></div><div class="std">`;
     list.forEach(c=>{ const v=impVal(c), si=(window.IMP_STATUS||[]).indexOf(v.status);
-      h+=`<div class="imp"><div class="it"><span class="code" style="font-weight:800;color:#2b4c8c;font-size:12px">${c}</span>
+      h+=`<div class="imp"><div class="it"><span class="code" style="font-weight:800;color:#2b4c8c;font-size:12px">${pcode(c)}</span>
         <span class="tx">${esc(impText(c))}</span>
         <span class="pill st-${Math.max(0,si)}">${esc(v.status)}</span></div>
         <div class="meta">
@@ -966,7 +969,7 @@ function impPrintHTML(){
     h+=`<h4 style="margin:9px 0 4px;color:#0f5c4a">${esc((window.DOMAINS||{})[sd[0]]||"")} — معيار: ${esc((window.STANDARDS||{})[sd]||"")}</h4>
     <table><tr><th style="width:6%">رقم المؤشر</th><th style="width:13%">اسم المؤشر</th><th style="width:5%">الحالية</th><th style="width:5%">المستهدفة</th><th style="width:6%">مدة الإنجاز</th><th style="width:9%">مسؤول التنفيذ</th><th style="width:11%">وصف الاحتياج</th><th style="width:20%">إجراءات التحسين</th><th style="width:13%">آليات التنفيذ</th><th style="width:7%">حالة التنفيذ</th></tr>`+
     codes.filter(c=>impStd(c)===sd).map(c=>{const v=impVal(c);
-      return `<tr><td class="code">${c}</td><td>${esc(impText(c))}</td><td>${esc(v.cur||"")}</td><td>${esc(v.tgt||"")}</td><td>${esc(v.dur||"")}</td><td>${esc(v.own||"")}</td><td>${esc(v.need||"")}</td><td>${esc(v.act||"")}</td><td>${esc(v.mech||"")}</td><td>${esc(v.status||"")}</td></tr>`}).join("")+`</table>`;
+      return `<tr><td class="code">${pcode(c)}</td><td>${esc(impText(c))}</td><td>${esc(v.cur||"")}</td><td>${esc(v.tgt||"")}</td><td>${esc(v.dur||"")}</td><td>${esc(v.own||"")}</td><td>${esc(v.need||"")}</td><td>${esc(v.act||"")}</td><td>${esc(v.mech||"")}</td><td>${esc(v.status||"")}</td></tr>`}).join("")+`</table>`;
   });
   h+=`<div class="sign"><div>رئيسة لجنة التميز<div class="ln"></div></div><div>قائدة فريق التقويم الذاتي<div class="ln"></div></div>
     <div>مديرة المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
@@ -1003,7 +1006,7 @@ function renderRep(){
     const rows=inD.filter(e=>!(only&&sIdx(e.status)>=2)).map(e=>
       `<tr><td>${esc(e.standard)}</td><td>${esc(e.title)}</td><td>${esc(e.status)}</td>
        <td>${esc(e.owner||"—")}</td><td>${e.due?hijri(new Date(e.due+"T00:00:00")):"—"}</td>
-       <td>${attOf(e.id).length||(e.link?"رابط":"—")}</td>${hasIndCol()?`<td class="code" style="font-size:10.5px">${indOf(e).join("<br>")||"—"}</td>`:""}</tr>`).join("");
+       <td>${attOf(e.id).length||(e.link?"رابط":"—")}</td>${hasIndCol()?`<td class="code" style="font-size:10.5px">${indOf(e).map(pcode).join("<br>")||"—"}</td>`:""}</tr>`).join("");
     if(!rows)return;
     h+=`<h4 style="margin:13px 0 5px;color:#0f5c4a">${esc(dm)} — الجاهزية ${pctOf(inD)}%</h4>
       <table><tr><th style="width:20%">المعيار</th><th>الشاهد المطلوب</th><th style="width:11%">الحالة</th>
@@ -1015,7 +1018,7 @@ function renderRep(){
     h+=`<h4 style="margin:16px 0 5px;color:#0f5c4a;break-before:page">تغطية مؤشرات التقويم المدرسي — إنجاز ${indPct(IND)}% — ${ok} من ${ap.length} مؤشرًا جاهز</h4>
       <table><tr><th style="width:11%">الرمز</th><th>المؤشر</th><th style="width:10%">الشواهد</th><th style="width:14%">الحالة</th></tr>`+
       IND.filter(i=>!only||indState(i.code).k!=="ok").map(i=>{const st=indState(i.code);
-        return `<tr><td class="code">${i.code}</td><td>${esc(i.text)}</td><td>${st.k==="na"?"—":(st.r||0)+"/"+st.ev.length}</td><td>${st.lbl}</td></tr>`}).join("")+`</table>`;
+        return `<tr><td class="code">${pcode(i.code)}</td><td>${esc(i.text)}</td><td>${st.k==="na"?"—":(st.r||0)+"/"+st.ev.length}</td><td>${st.lbl}</td></tr>`}).join("")+`</table>`;
   }
   h+=`<div class="sign"><div>عضوة فريق التقويم<div class="ln"></div></div>
     <div>قائدة فريق التقويم الذاتي<div class="ln"></div></div>
