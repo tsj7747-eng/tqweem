@@ -112,6 +112,14 @@ th{background:var(--soft);font-weight:700}
 .p-ok{background:#e6f4ee;color:var(--ok)}.p-part{background:#fdf3e0;color:var(--warn)}
 .p-none{background:#fbe9eb;color:var(--bad)}.p-na{background:#f1f3f6;color:#8a94a6}
 .sign{display:flex;justify-content:space-between;margin-top:36px;text-align:center;font-size:12px}
+.imp{border:1px solid var(--line);border-radius:12px;padding:10px;margin:8px 0;background:#fcfdfe}
+.imp .g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px;margin-top:8px}
+.imp textarea{min-height:62px;font-size:13px}
+.src-ai{background:#fff4e0;color:#9a6200}.src-pdf{background:#e6f4ee;color:var(--ok)}
+.st-0{background:#f1f3f6;color:#63718a}.st-1{background:#fdf3e0;color:var(--warn)}.st-2{background:#e6f4ee;color:var(--ok)}.st-3{background:#fbe9eb;color:var(--bad)}
+#impPrint{display:none}
+@media print{#v-imp .card,#impTree{display:none!important}#impPrint{display:block;page:impl}
+ #impPrint table{font-size:9.5px}#impPrint td{vertical-align:top;white-space:pre-line}@page impl{size:A4 landscape;margin:9mm}}
 .sign div{flex:1}.sign .ln{margin-top:32px;border-top:1px solid #333;width:70%;margin-inline:auto}
 </style>
 </head>
@@ -142,6 +150,7 @@ th{background:var(--soft);font-weight:700}
 <nav id="nav">
   <button data-v="dash" class="on">لوحة الجاهزية</button>
   <button data-v="ind">المؤشرات</button>
+  <button data-v="imp">خطة التحسين</button>
   <button data-v="ev">الشواهد والأدلة</button>
   <button data-v="lib">مكتبة الملفات</button>
   <button data-v="log">سجل النشاط</button>
@@ -184,6 +193,26 @@ th{background:var(--soft);font-weight:700}
   <div class="card"><h3>🧰 أدوات التقويم الخارجي (12 أداة)</h3>
     <div class="hint">يجمع فريق التقويم الخارجي البيانات بهذه الأدوات، فجهّز لها:</div>
     <div id="toolsBox"></div></div>
+</section>
+
+<section class="view" id="v-imp">
+  <div class="card noprint"><h3>خطة التحسين المبنية على نتائج التقويم المدرسي</h3>
+    <div class="hint">لكل مؤشر: الدرجة الحالية والمستهدفة، المدة، المسؤول، الاحتياج، الإجراءات، آليات التنفيذ، مؤشر قياس الأثر والشواهد — ومتابعة التنفيذ (المؤشر 1-4-1-7). يُحفظ كل حقل تلقائيًا عند الخروج منه.
+      <br><span class="pill src-pdf">من ملف المدرسة</span> منقول من ملف خطة التحسين المرفوع.
+      <span class="pill src-ai">مقترح</span> أُكمل لأنه كان فارغًا في الملف — راجعيه وعدّليه بما يناسب المدرسة.</div>
+    <div class="kpis" id="impKpis" style="margin-top:9px"></div>
+    <div class="filters" style="margin-top:9px">
+      <input id="impQ" placeholder="🔎 بحث في الخطة...">
+      <select id="impSt"><option value="">كل حالات التنفيذ</option></select>
+      <select id="impSrc"><option value="">كل المصادر</option><option value="pdf">من ملف المدرسة</option><option value="ai">مقترح</option><option value="nolvl">بلا درجة حالية</option></select>
+    </div>
+    <div class="row" style="margin-top:9px">
+      <button class="btn p" onclick="printImp()">🖨️ طباعة الخطة</button>
+      <button class="btn sm" id="impSeedBtn" style="display:none" onclick="seedImp()">إنشاء الخطة من القالب</button>
+      <span class="hint" id="impNote"></span></div>
+  </div>
+  <div id="impTree"></div>
+  <div id="impPrint"></div>
 </section>
 
 <section class="view" id="v-ev">
@@ -267,13 +296,14 @@ th{background:var(--soft);font-weight:700}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.2/dist/umd/supabase.min.js"></script>
 <script src="config.js"></script>
 <script src="indicators.js"></script>
+<script src="improvement.js"></script>
 <script>
 /* ================= الحالة ================= */
 const CFG = window.APP_CONFIG || {};
 const STATUS = ["لم يبدأ","قيد التجهيز","مكتمل","معتمد","غير مطلوب"];
 let sb = null, ME = null, ROLE = "viewer";
 let EV = [], ATT = [], LOG = [], SET = {}, openState = {};
-let SCHOOL = null, SCHOOLS = [], ALL_EV = [];
+let SCHOOL = null, SCHOOLS = [], ALL_EV = [], IMP = [], IMP_OK = true;
 const isSuper = () => ROLE==="superadmin";
 
 const esc = s => String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -396,7 +426,10 @@ async function loadAll(loud){
     let q2 = sb.from("attachments").select("*").order("created_at",{ascending:false});
     let q3 = sb.from("activity").select("*").order("created_at",{ascending:false}).limit(120);
     if(!isSuper() && SCHOOL){ q1=q1.eq("school_id",SCHOOL); q2=q2.eq("school_id",SCHOOL); q3=q3.eq("school_id",SCHOOL) }
-    const [e,a,l,s] = await Promise.all([q1,q2,q3,sb.from("schools").select("*").order("name")]);
+    let q4 = sb.from("improvement").select("*");
+    if(SCHOOL) q4=q4.eq("school_id",SCHOOL);
+    const [e,a,l,s,im] = await Promise.all([q1,q2,q3,sb.from("schools").select("*").order("name"),q4]);
+    IMP_OK = !im.error; IMP = im.data||[];
     if(e.error) throw e.error;
     SCHOOLS = s.data || SCHOOLS;
     ALL_EV = e.data||[];
@@ -420,7 +453,7 @@ document.getElementById("nav").addEventListener("click",e=>{
   window.scrollTo(0,0);
 });
 function renderAll(){ fillFilters(); renderTree(); renderInd(); renderDash(); renderLib();
-  renderLog(); renderRep(); fillSchool(); renderSchools() }
+  renderLog(); renderRep(); fillSchool(); renderSchools(); renderImp() }
 
 function renderSchools(){
   const box=document.getElementById("schBars"); if(!box)return;
@@ -837,6 +870,117 @@ function renderLog(){
     `<div class="f"><span class="n">${esc(l.action)}</span>
      <span class="sz"><bdi>${esc(l.actor)}</bdi> — <bdi>${new Date(l.created_at).toLocaleString("ar-SA-u-ca-gregory")}</bdi></span></div>`).join("")
     : `<div class="hint">لا يوجد نشاط مسجَّل بعد.</div>`;
+}
+
+/* ================= خطة التحسين ================= */
+const IMP_F = [["need","وصف الاحتياج"],["act","إجراءات التحسين"],["mech","آليات تنفيذ الإجراءات"],["kpi","مؤشر قياس الأثر"],["evd","الشواهد المتوقعة"],["prog","متابعة التنفيذ وملاحظاته"]];
+const IMP_TXT = Object.fromEntries((window.IMP_EXTRA||[]).map(([c,t])=>[c,t]));
+const impText = c => (INDB[c]&&INDB[c].text) || IMP_TXT[c] || "";
+const isSec = () => /ثانو/.test(SET.stage||"");
+// المؤشرات المعروضة: المنطبقة على المدرسة، وللثانوي التحصيلي والقدرات بدل مؤشرات نافس
+function impCodes(){
+  const out=[];
+  IND.forEach(i=>{ if(!applies(i.code)) return;
+    if(i.std==="3-1"){ if(isSec()){ if(!out.includes("3-1-S1")) out.push("3-1-S1","3-1-S2") } else out.push(i.code) }
+    else out.push(i.code) });
+  return out;
+}
+const impRow = c => IMP.find(r=>r.code===c);
+const impStd = c => c.slice(0,3);
+function impVal(c){ const r=impRow(c); if(r) return r;
+  const t=(window.IMP_TPL||{})[c]||{}; return Object.assign({code:c,status:"لم يبدأ",prog:"",_tpl:1},t) }
+function impMatch(c,v){
+  const q=(document.getElementById("impQ").value||"").trim(), st=document.getElementById("impSt").value, sr=document.getElementById("impSrc").value;
+  if(st && v.status!==st) return false;
+  if(sr==="nolvl"){ if(v.cur) return false } else if(sr && v.src!==sr) return false;
+  if(q){ const hay=[c,impText(c),v.need,v.act,v.mech,v.own,v.kpi,v.evd,v.prog].join(" "); if(!hay.includes(q)) return false }
+  return true;
+}
+function renderImp(){
+  const box=document.getElementById("impTree"); if(!box) return;
+  if(busy() && document.activeElement.closest("#v-imp")) return; // لا نعيد الرسم أثناء الكتابة
+  const stSel=document.getElementById("impSt");
+  if(stSel.options.length<2) stSel.innerHTML+= (window.IMP_STATUS||[]).map(s=>`<option>${s}</option>`).join("");
+  if(!IMP_OK){ box.innerHTML=`<div class="card hint">جدول خطة التحسين غير مفعّل في قاعدة البيانات بعد (upgrade_improvement.sql).</div>`; return }
+  const codes=impCodes(), ro=!canEdit();
+  document.getElementById("impSeedBtn").style.display = (!ro && SCHOOL && !IMP.length) ? "" : "none";
+  document.getElementById("impNote").textContent = ro ? "حسابك للاطّلاع فقط." : (!IMP.length ? "لم تُنشأ خطة لهذه المدرسة بعد — يظهر القالب المقترح، وأي تعديل يحفظه." : "");
+  const vals=codes.map(impVal), n=c=>vals.filter(v=>v.status===c).length;
+  const done=n("منفَّذ"), pct=vals.length?Math.round((done+n("جارٍ التنفيذ")*.5)/vals.length*100):0;
+  document.getElementById("impKpis").innerHTML=`
+    <div class="kpi"><b>${vals.length}</b><span>مؤشرًا في الخطة</span></div>
+    <div class="kpi"><b style="color:var(--ok)">${done}</b><span>منفَّذ</span></div>
+    <div class="kpi"><b style="color:var(--warn)">${n("جارٍ التنفيذ")}</b><span>جارٍ التنفيذ</span></div>
+    <div class="kpi"><b style="color:var(--bad)">${n("متعثر")}</b><span>متعثر</span></div>
+    <div class="kpi"><b>${pct}%</b><span>نسبة تنفيذ الخطة</span></div>
+    <div class="kpi"><b style="color:#9a6200">${vals.filter(v=>!v.cur).length}</b><span>بلا درجة حالية</span></div>`;
+  const lv=(c,f,v)=>`<select ${ro?"disabled":""} onchange="impSave('${c}','${f}',this.value)"><option value="">—</option>${(window.IMP_LEVELS||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
+  const inp=(c,f,v)=>`<input ${ro?"disabled":""} value="${esc(v||"")}" onchange="impSave('${c}','${f}',this.value)">`;
+  let h="";
+  [...new Set(codes.map(impStd))].forEach(sd=>{
+    const list=codes.filter(c=>impStd(c)===sd && impMatch(c,impVal(c))); if(!list.length) return;
+    h+=`<div class="dom"><div class="dh"><span class="nm">${esc((window.DOMAINS||{})[sd[0]]||"")} — معيار: ${esc((window.STANDARDS||{})[sd]||sd)}</span></div><div class="std">`;
+    list.forEach(c=>{ const v=impVal(c), si=(window.IMP_STATUS||[]).indexOf(v.status);
+      h+=`<div class="imp"><div class="it"><span class="code" style="font-weight:800;color:#2b4c8c;font-size:12px">${c}</span>
+        <span class="tx">${esc(impText(c))}</span>
+        ${v.src?`<span class="pill src-${v.src}">${v.src==="ai"?"مقترح":"من ملف المدرسة"}</span>`:""}
+        <span class="pill st-${Math.max(0,si)}">${esc(v.status)}</span></div>
+        <div class="meta">
+          <div><span class="lbl">الدرجة الحالية</span>${lv(c,"cur",v.cur)}</div>
+          <div><span class="lbl">الدرجة المستهدفة</span>${lv(c,"tgt",v.tgt)}</div>
+          <div><span class="lbl">مدة الإنجاز</span>${inp(c,"dur",v.dur)}</div>
+          <div><span class="lbl">مسؤول التنفيذ</span>${inp(c,"own",v.own)}</div>
+          <div><span class="lbl">حالة التنفيذ</span><select ${ro?"disabled":""} onchange="impSave('${c}','status',this.value)">${(window.IMP_STATUS||[]).map(x=>`<option ${x===v.status?"selected":""}>${x}</option>`).join("")}</select></div>
+        </div><div class="g2">${IMP_F.map(([f,l])=>`<div><span class="lbl">${l}</span><textarea ${ro?"disabled":""} onchange="impSave('${c}','${f}',this.value)">${esc(v[f]||"")}</textarea></div>`).join("")}</div>
+        ${v.updated_by?`<div class="hint" style="margin-top:5px">آخر تعديل: ${esc(v.updated_by)} — ${hijri(new Date(v.updated_at))}</div>`:""}</div>`;
+    });
+    h+=`</div></div>`;
+  });
+  box.innerHTML = h || `<div class="card hint">لا نتائج مطابقة.</div>`;
+}
+["impQ","impSt","impSrc"].forEach(id=>{const el=document.getElementById(id); el.addEventListener(id==="impQ"?"input":"change",()=>{el.blur&&id!=="impQ"&&el.blur();renderImp()})});
+const impPayload = (c,v) => { const o={school_id:SCHOOL,code:c};
+  ["cur","tgt","dur","own","need","act","mech","kpi","evd","status","prog","src"].forEach(k=>o[k]=v[k]||(k==="status"?"لم يبدأ":""));
+  return o };
+async function impSave(c,f,val){
+  if(!canEdit()||!SCHOOL) return;
+  const v=Object.assign({},impVal(c)); v[f]=val;
+  const row=impPayload(c,v); row.updated_by=ME?.email||""; row.updated_at=new Date().toISOString();
+  let res; try{ res=await sb.from("improvement").upsert(row,{onConflict:"school_id,code"}).select().single() }catch(x){ res={error:x} }
+  if(res.error) return toast("لم يُحفظ — تحقق من الاتصال أو صلاحيتك");
+  const i=IMP.findIndex(r=>r.code===c); if(i>=0) IMP[i]=res.data; else IMP.push(res.data);
+  logIt(`عدّل خطة التحسين — المؤشر ${c}`);
+  toast("تم الحفظ");
+  if(f==="status"||f==="cur"){ document.activeElement&&document.activeElement.blur&&document.activeElement.blur(); renderImp() }
+}
+async function seedImp(){
+  if(!canEdit()||!SCHOOL||IMP.length) return;
+  const rows=impCodes().map(c=>{const r=impPayload(c,impVal(c)); r.updated_by=ME?.email||""; return r});
+  const {error}=await sb.from("improvement").upsert(rows,{onConflict:"school_id,code",ignoreDuplicates:true});
+  if(error) return toast("تعذّر إنشاء الخطة");
+  logIt("أنشأ خطة التحسين من القالب"); await loadAll(0); toast("أُنشئت خطة التحسين");
+}
+function impPrintHTML(){
+  const codes=impCodes();
+  let h=`<div style="text-align:center;margin-bottom:8px">
+    ${CFG.BANNER_URL?`<img src="${CFG.BANNER_URL}" alt="" style="width:100%;max-width:520px;object-fit:contain">`:`<div style="font-weight:700">المملكة العربية السعودية — وزارة التعليم</div>`}
+    <div>${esc(SET.edu||"")} — ${esc(SET.name||"")}</div>
+    <div style="font-size:15px;font-weight:700;color:#0f5c4a;margin-top:4px">خطة التحسين المبنية على نتائج التقويم المدرسي</div>
+    <div class="hint">العام الدراسي ${esc(SET.year||"—")} — بتاريخ ${hijri(new Date())}</div></div>`;
+  [...new Set(codes.map(impStd))].forEach(sd=>{
+    h+=`<h4 style="margin:9px 0 4px;color:#0f5c4a">${esc((window.DOMAINS||{})[sd[0]]||"")} — معيار: ${esc((window.STANDARDS||{})[sd]||"")}</h4>
+    <table><tr><th style="width:6%">رقم المؤشر</th><th style="width:13%">اسم المؤشر</th><th style="width:5%">الحالية</th><th style="width:5%">المستهدفة</th><th style="width:6%">مدة الإنجاز</th><th style="width:9%">مسؤول التنفيذ</th><th style="width:11%">وصف الاحتياج</th><th style="width:15%">إجراءات التحسين</th><th style="width:9%">آليات التنفيذ</th><th style="width:11%">مؤشر قياس الأثر</th><th style="width:6%">حالة التنفيذ</th></tr>`+
+    codes.filter(c=>impStd(c)===sd).map(c=>{const v=impVal(c);
+      return `<tr><td class="code">${c}</td><td>${esc(impText(c))}</td><td>${esc(v.cur||"")}</td><td>${esc(v.tgt||"")}</td><td>${esc(v.dur||"")}</td><td>${esc(v.own||"")}</td><td>${esc(v.need||"")}</td><td>${esc(v.act||"")}</td><td>${esc(v.mech||"")}</td><td>${esc(v.kpi||"")}</td><td>${esc(v.status||"")}</td></tr>`}).join("")+`</table>`;
+  });
+  h+=`<div class="sign"><div>رئيسة لجنة التميز<div class="ln"></div></div><div>قائدة فريق التقويم الذاتي<div class="ln"></div></div>
+    <div>مديرة المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
+  return h;
+}
+async function printImp(){
+  const b=document.getElementById("impPrint"); b.innerHTML=impPrintHTML();
+  await Promise.all([...b.querySelectorAll("img")].map(i=>i.complete?0:new Promise(r=>{i.onload=i.onerror=r;setTimeout(r,4000)})));
+  window.print();
 }
 
 /* ================= التقرير ================= */
