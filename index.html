@@ -197,14 +197,11 @@ th{background:var(--soft);font-weight:700}
 
 <section class="view" id="v-imp">
   <div class="card noprint"><h3>خطة التحسين المبنية على نتائج التقويم المدرسي</h3>
-    <div class="hint">لكل مؤشر: الدرجة الحالية والمستهدفة، المدة، المسؤول، الاحتياج، الإجراءات، آليات التنفيذ، مؤشر قياس الأثر والشواهد — ومتابعة التنفيذ (المؤشر 1-4-1-7). يُحفظ كل حقل تلقائيًا عند الخروج منه.
-      <br><span class="pill src-pdf">من ملف المدرسة</span> منقول من ملف خطة التحسين المرفوع.
-      <span class="pill src-ai">مقترح</span> أُكمل لأنه كان فارغًا في الملف — راجعيه وعدّليه بما يناسب المدرسة.</div>
+    <div class="hint">المؤشرات الواردة في خطة تحسين المدرسة: الدرجة الحالية والمستهدفة، مدة الإنجاز، مسؤول التنفيذ، وصف الاحتياج، إجراءات التحسين، آليات التنفيذ — مع متابعة التنفيذ. يُحفظ كل حقل تلقائيًا عند الخروج منه.</div>
     <div class="kpis" id="impKpis" style="margin-top:9px"></div>
     <div class="filters" style="margin-top:9px">
       <input id="impQ" placeholder="🔎 بحث في الخطة...">
       <select id="impSt"><option value="">كل حالات التنفيذ</option></select>
-      <select id="impSrc"><option value="">كل المصادر</option><option value="pdf">من ملف المدرسة</option><option value="ai">مقترح</option><option value="nolvl">بلا درجة حالية</option></select>
     </div>
     <div class="row" style="margin-top:9px">
       <button class="btn p" onclick="printImp()">🖨️ طباعة الخطة</button>
@@ -873,7 +870,7 @@ function renderLog(){
 }
 
 /* ================= خطة التحسين ================= */
-const IMP_F = [["need","وصف الاحتياج"],["act","إجراءات التحسين"],["mech","آليات تنفيذ الإجراءات"],["kpi","مؤشر قياس الأثر"],["evd","الشواهد المتوقعة"],["prog","متابعة التنفيذ وملاحظاته"]];
+const IMP_F = [["need","وصف الاحتياج"],["act","إجراءات التحسين"],["mech","آليات تنفيذ الإجراءات"],["prog","متابعة التنفيذ وملاحظاته"]];
 const IMP_TXT = Object.fromEntries((window.IMP_EXTRA||[]).map(([c,t])=>[c,t]));
 const impText = c => (INDB[c]&&INDB[c].text) || IMP_TXT[c] || "";
 const isSec = () => /ثانو/.test(SET.stage||"");
@@ -883,17 +880,17 @@ function impCodes(){
   IND.forEach(i=>{ if(!applies(i.code)) return;
     if(i.std==="3-1"){ if(isSec()){ if(!out.includes("3-1-S1")) out.push("3-1-S1","3-1-S2") } else out.push(i.code) }
     else out.push(i.code) });
-  return out;
+  // فقط المؤشرات الواردة في خطة التحسين (القالب) أو المحفوظة للمدرسة
+  return out.filter(c=>(window.IMP_TPL||{})[c] || IMP.some(r=>r.code===c));
 }
 const impRow = c => IMP.find(r=>r.code===c);
 const impStd = c => c.slice(0,3);
 function impVal(c){ const r=impRow(c); if(r) return r;
   const t=(window.IMP_TPL||{})[c]||{}; return Object.assign({code:c,status:"لم يبدأ",prog:"",_tpl:1},t) }
 function impMatch(c,v){
-  const q=(document.getElementById("impQ").value||"").trim(), st=document.getElementById("impSt").value, sr=document.getElementById("impSrc").value;
+  const q=(document.getElementById("impQ").value||"").trim(), st=document.getElementById("impSt").value;
   if(st && v.status!==st) return false;
-  if(sr==="nolvl"){ if(v.cur) return false } else if(sr && v.src!==sr) return false;
-  if(q){ const hay=[c,impText(c),v.need,v.act,v.mech,v.own,v.kpi,v.evd,v.prog].join(" "); if(!hay.includes(q)) return false }
+  if(q){ const hay=[c,impText(c),v.need,v.act,v.mech,v.own,v.prog].join(" "); if(!hay.includes(q)) return false }
   return true;
 }
 function renderImp(){
@@ -912,8 +909,7 @@ function renderImp(){
     <div class="kpi"><b style="color:var(--ok)">${done}</b><span>منفَّذ</span></div>
     <div class="kpi"><b style="color:var(--warn)">${n("جارٍ التنفيذ")}</b><span>جارٍ التنفيذ</span></div>
     <div class="kpi"><b style="color:var(--bad)">${n("متعثر")}</b><span>متعثر</span></div>
-    <div class="kpi"><b>${pct}%</b><span>نسبة تنفيذ الخطة</span></div>
-    <div class="kpi"><b style="color:#9a6200">${vals.filter(v=>!v.cur).length}</b><span>بلا درجة حالية</span></div>`;
+    <div class="kpi"><b>${pct}%</b><span>نسبة تنفيذ الخطة</span></div>`;
   const lv=(c,f,v)=>`<select ${ro?"disabled":""} onchange="impSave('${c}','${f}',this.value)"><option value="">—</option>${(window.IMP_LEVELS||[]).map(x=>`<option ${x===v?"selected":""}>${x}</option>`).join("")}</select>`;
   const inp=(c,f,v)=>`<input ${ro?"disabled":""} value="${esc(v||"")}" onchange="impSave('${c}','${f}',this.value)">`;
   let h="";
@@ -923,7 +919,6 @@ function renderImp(){
     list.forEach(c=>{ const v=impVal(c), si=(window.IMP_STATUS||[]).indexOf(v.status);
       h+=`<div class="imp"><div class="it"><span class="code" style="font-weight:800;color:#2b4c8c;font-size:12px">${c}</span>
         <span class="tx">${esc(impText(c))}</span>
-        ${v.src?`<span class="pill src-${v.src}">${v.src==="ai"?"مقترح":"من ملف المدرسة"}</span>`:""}
         <span class="pill st-${Math.max(0,si)}">${esc(v.status)}</span></div>
         <div class="meta">
           <div><span class="lbl">الدرجة الحالية</span>${lv(c,"cur",v.cur)}</div>
@@ -938,7 +933,7 @@ function renderImp(){
   });
   box.innerHTML = h || `<div class="card hint">لا نتائج مطابقة.</div>`;
 }
-["impQ","impSt","impSrc"].forEach(id=>{const el=document.getElementById(id); el.addEventListener(id==="impQ"?"input":"change",()=>{el.blur&&id!=="impQ"&&el.blur();renderImp()})});
+["impQ","impSt"].forEach(id=>{const el=document.getElementById(id); el.addEventListener(id==="impQ"?"input":"change",()=>{el.blur&&id!=="impQ"&&el.blur();renderImp()})});
 const impPayload = (c,v) => { const o={school_id:SCHOOL,code:c};
   ["cur","tgt","dur","own","need","act","mech","kpi","evd","status","prog","src"].forEach(k=>o[k]=v[k]||(k==="status"?"لم يبدأ":""));
   return o };
@@ -969,9 +964,9 @@ function impPrintHTML(){
     <div class="hint">العام الدراسي ${esc(SET.year||"—")} — بتاريخ ${hijri(new Date())}</div></div>`;
   [...new Set(codes.map(impStd))].forEach(sd=>{
     h+=`<h4 style="margin:9px 0 4px;color:#0f5c4a">${esc((window.DOMAINS||{})[sd[0]]||"")} — معيار: ${esc((window.STANDARDS||{})[sd]||"")}</h4>
-    <table><tr><th style="width:6%">رقم المؤشر</th><th style="width:13%">اسم المؤشر</th><th style="width:5%">الحالية</th><th style="width:5%">المستهدفة</th><th style="width:6%">مدة الإنجاز</th><th style="width:9%">مسؤول التنفيذ</th><th style="width:11%">وصف الاحتياج</th><th style="width:15%">إجراءات التحسين</th><th style="width:9%">آليات التنفيذ</th><th style="width:11%">مؤشر قياس الأثر</th><th style="width:6%">حالة التنفيذ</th></tr>`+
+    <table><tr><th style="width:6%">رقم المؤشر</th><th style="width:13%">اسم المؤشر</th><th style="width:5%">الحالية</th><th style="width:5%">المستهدفة</th><th style="width:6%">مدة الإنجاز</th><th style="width:9%">مسؤول التنفيذ</th><th style="width:11%">وصف الاحتياج</th><th style="width:20%">إجراءات التحسين</th><th style="width:13%">آليات التنفيذ</th><th style="width:7%">حالة التنفيذ</th></tr>`+
     codes.filter(c=>impStd(c)===sd).map(c=>{const v=impVal(c);
-      return `<tr><td class="code">${c}</td><td>${esc(impText(c))}</td><td>${esc(v.cur||"")}</td><td>${esc(v.tgt||"")}</td><td>${esc(v.dur||"")}</td><td>${esc(v.own||"")}</td><td>${esc(v.need||"")}</td><td>${esc(v.act||"")}</td><td>${esc(v.mech||"")}</td><td>${esc(v.kpi||"")}</td><td>${esc(v.status||"")}</td></tr>`}).join("")+`</table>`;
+      return `<tr><td class="code">${c}</td><td>${esc(impText(c))}</td><td>${esc(v.cur||"")}</td><td>${esc(v.tgt||"")}</td><td>${esc(v.dur||"")}</td><td>${esc(v.own||"")}</td><td>${esc(v.need||"")}</td><td>${esc(v.act||"")}</td><td>${esc(v.mech||"")}</td><td>${esc(v.status||"")}</td></tr>`}).join("")+`</table>`;
   });
   h+=`<div class="sign"><div>رئيسة لجنة التميز<div class="ln"></div></div><div>قائدة فريق التقويم الذاتي<div class="ln"></div></div>
     <div>مديرة المدرسة${SET.prin?"<br>"+esc(SET.prin):""}<div class="ln"></div></div></div>`;
