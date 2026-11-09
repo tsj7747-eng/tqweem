@@ -326,9 +326,9 @@ const hasIndCol = () => EV.length>0 && Array.isArray(EV[0].indicators);
 // مؤشرات (*) لا تنطبق على المدارس الحكومية
 const applies = c => { const i=INDB[c]; if(!i) return true;
   if(i.p && (SET.kind||"حكومية")==="حكومية") return false;
-  const sec=/ثانو/.test(SET.stage||""); if(i.sec && !sec) return false; if(i.nafs && sec) return false; return true };
+  if(i.sec) return false; return true };
 // ترقيم خطة التحسين: تسلسل المؤشرات المنطبقة داخل كل معيار (مثل 1-4-1-1 للرخصة المهنية في المدارس الحكومية)
-const pcode = c => { const i=INDB[c]; if(!i||!applies(c)) return c;
+const pcode = c => { const i=INDB[c]; if(i&&i.sec) return "3-1-1-"+c.slice(-1); if(!i||!applies(c)) return c;
   const n=IND.filter(x=>x.std===i.std && applies(x.code)).findIndex(x=>x.code===c); return n<0?c:`${i.std}-1-${n+1}` };
 const ready = e => e.status==="مكتمل" || e.status==="معتمد";
 // يتحرك المؤشر مع كل خطوة: «قيد التجهيز» نصف، و«مكتمل/معتمد» كامل
@@ -887,7 +887,7 @@ const isSec = () => /ثانو/.test(SET.stage||"");
 // المؤشرات المعروضة: المنطبقة على المدرسة، وللثانوي التحصيلي والقدرات بدل مؤشرات نافس
 function impCodes(){
   const out=[];
-  IND.forEach(i=>{ if(applies(i.code)) out.push(i.code) });
+  IND.forEach(i=>{ if(applies(i.code) || (i.sec && isSec())) out.push(i.code) });
   // فقط المؤشرات الواردة في خطة التحسين (القالب) أو المحفوظة للمدرسة
   return out.filter(c=>(window.IMP_TPL||{})[c] || IMP.some(r=>r.code===c));
 }
